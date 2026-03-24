@@ -1,11 +1,9 @@
 spring:
-  # ── Dev Database (MySQL local) ────────────────────────────
   datasource:
-    url: jdbc:mysql://localhost:3306/smartcampus_dev?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    url: jdbc:mysql://localhost:3306/akademi_dev?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
     username: root
-    password: root
+    password:
 
-  # ── Hibernate: auto-create tables in dev ──────────────────
   jpa:
     hibernate:
       ddl-auto: update
@@ -14,7 +12,6 @@ spring:
       hibernate:
         format_sql: true
 
-  # ── Dev Mail: MailHog / Mailtrap ──────────────────────────
   mail:
     host: localhost
     port: 1025
@@ -27,20 +24,11 @@ spring:
           starttls:
             enable: false
 
-# ── Dev JWT (non-secret placeholder) ─────────────────────────
 jwt:
-  secret: dev-only-secret-key-do-not-use-in-production-min-256-bits!!
-  expiration-ms: 86400000
+  secret: akademi-dev-secret-key-not-for-production-use-only
 
-# ── Dev logging: verbose ──────────────────────────────────────
 logging:
   level:
-    com.smartcampus: DEBUG
-    org.springframework.security: DEBUG
+    com.akademi: DEBUG
     org.hibernate.SQL: DEBUG
-    org.hibernate.type.descriptor.sql: TRACE
-
-# ── Dev server ────────────────────────────────────────────────
-server:
-  error:
-    include-stacktrace: always
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE

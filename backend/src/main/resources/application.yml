@@ -1,0 +1,93 @@
+spring:
+  application:
+    name: smart-campus
+
+  # ── Database (MySQL) ──────────────────────────────────────
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:smartcampus}?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    username: ${DB_USER:root}
+    password: ${DB_PASSWORD:root}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+
+  # ── JPA / Hibernate ───────────────────────────────────────
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        format_sql: true
+
+  # ── OAuth2 (Google SSO) ───────────────────────────────────
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            scope:
+              - email
+              - profile
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+
+  # ── Mail ──────────────────────────────────────────────────
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+  # ── File Uploads ──────────────────────────────────────────
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB
+      max-request-size: 20MB
+
+  # ── Profiles ──────────────────────────────────────────────
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+
+# ── Server ────────────────────────────────────────────────────
+server:
+  port: ${SERVER_PORT:8080}
+  servlet:
+    context-path: /api
+  error:
+    include-message: always
+    include-binding-errors: always
+
+# ── JWT ───────────────────────────────────────────────────────
+jwt:
+  secret: ${JWT_SECRET:ThisIsAVeryLongSecretKeyForJWTSigningThatIsAtLeast256BitsLong!}
+  expiration-ms: 86400000
+  refresh-expiration-ms: 604800000
+
+# ── Application-specific ──────────────────────────────────────
+app:
+  frontend-url: ${FRONTEND_URL:http://localhost:5173}
+  uploads-dir: ${UPLOADS_DIR:uploads}
+  qr:
+    token-expiry-minutes: 30
+  sla:
+    first-response-hours: 4
+    resolution-hours: 24
+
+# ── Logging ───────────────────────────────────────────────────
+logging:
+  level:
+    com.smartcampus: INFO
+    org.springframework.security: WARN
+    org.hibernate.SQL: WARN

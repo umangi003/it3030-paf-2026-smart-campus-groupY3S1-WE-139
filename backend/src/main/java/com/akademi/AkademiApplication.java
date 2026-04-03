@@ -1,4 +1,4 @@
-package main.java.com.akademi;
+package com.akademi;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

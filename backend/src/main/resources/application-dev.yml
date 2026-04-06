@@ -2,7 +2,7 @@ spring:
   datasource:
     url: jdbc:mysql://localhost:3306/akademi_dev?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
     username: root
-    password: iwlmlttf
+    password: 123456Ad
 
   jpa:
     hibernate:

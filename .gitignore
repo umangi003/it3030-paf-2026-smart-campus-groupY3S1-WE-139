@@ -10,6 +10,7 @@ backend/target/
 **/target/
 *.class
 *.jar
+
 *.war
 *.ear
 

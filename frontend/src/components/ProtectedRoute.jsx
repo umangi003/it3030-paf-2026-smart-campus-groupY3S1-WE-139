@@ -1,10 +1,11 @@
-import { Navigate, Outlet } from 'react-router-dom'
+import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import Navbar from './Navbar'
 import Sidebar from './Sidebar'
 
-export default function ProtectedRoute({ adminOnly = false }) {
+export default function ProtectedRoute({ adminOnly = false, staffOnly = false }) {
   const { user, token, loading } = useAuth()
+  const location = useLocation()
 
   if (loading) {
     return (
@@ -25,8 +26,14 @@ export default function ProtectedRoute({ adminOnly = false }) {
     )
   }
 
-  if (!token || !user) return <Navigate to="/login" replace />
+  // Not logged in — redirect to login, saving intended destination
+  if (!token || !user) {
+    return <Navigate to="/login" state={{ from: location }} replace />
+  }
+
+  // Role-based guards
   if (adminOnly && user.role !== 'ADMIN') return <Navigate to="/" replace />
+  if (staffOnly && user.role !== 'STAFF' && user.role !== 'ADMIN') return <Navigate to="/" replace />
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--gray-50)' }}>

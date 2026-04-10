@@ -2,14 +2,10 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { AuthProvider } from './context/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
-import AdminRoute from './components/AdminRoute'
+import LandingLayout from './pages/LandingLayout'
 
-import LandingPage from './pages/landing/LandingPage'
 import LoginPage from './pages/auth/LoginPage'
 import OAuth2Redirect from './pages/auth/OAuth2Redirect'
-
-import StudentDashboard from './pages/dashboard/StudentDashboard'
-import StaffDashboard from './pages/dashboard/StaffDashboard'
 
 import ResourceListPage from './pages/resources/ResourceListPage'
 import ResourceDetailPage from './pages/resources/ResourceDetailPage'
@@ -22,36 +18,41 @@ import NotificationsPage from './pages/notifications/NotificationsPage'
 import NotificationPreferencesPage from './pages/notifications/NotificationPreferencesPage'
 import AdminDashboard from './pages/admin/AdminDashboard'
 import SLADashboard from './pages/admin/SLADashboard'
-
-const toastStyle = {
-  style: {
-    fontFamily: 'DM Sans, sans-serif',
-    fontSize: '14px',
-    borderRadius: '8px',
-    background: '#001E2B',
-    color: '#fff',
-    border: '1px solid #023430',
-  },
-  success: { iconTheme: { primary: '#00ED64', secondary: '#001E2B' } },
-}
+import StaffDashboard from './pages/staff/StaffDashboard'
+import TechnicianDashboard from './pages/technician/TechnicianDashboard'
 
 export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
-        <Toaster position="top-right" toastOptions={toastStyle} />
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            style: {
+              fontFamily: 'DM Sans, sans-serif',
+              fontSize: '14px',
+              borderRadius: '8px',
+              background: '#001E2B',
+              color: '#fff',
+              border: '1px solid #023430',
+            },
+            success: { iconTheme: { primary: '#00ED64', secondary: '#001E2B' } },
+          }}
+        />
         <Routes>
-          {/* Public */}
-          <Route path="/" element={<LandingPage />} />
+          {/* Auth */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/oauth2/redirect" element={<OAuth2Redirect />} />
 
-          {/* Protected (any logged-in user) */}
-          <Route element={<ProtectedRoute />}>
-            <Route path="/dashboard/student" element={<StudentDashboard />} />
-            <Route path="/dashboard/staff" element={<StaffDashboard />} />
-            <Route path="/resources" element={<ResourceListPage />} />
+          {/* Public landing — anyone can browse resources */}
+          <Route element={<LandingLayout />}>
+            <Route path="/" element={<ResourceListPage />} />
             <Route path="/resources/:id" element={<ResourceDetailPage />} />
+          </Route>
+
+          {/* Protected — requires login */}
+          <Route element={<ProtectedRoute />}>
+            <Route path="/resources" element={<ResourceListPage />} />
             <Route path="/bookings" element={<BookingListPage />} />
             <Route path="/bookings/new" element={<BookingFormPage />} />
             <Route path="/bookings/qr/:token" element={<QRCheckInPage />} />
@@ -59,15 +60,16 @@ export default function App() {
             <Route path="/incidents/:id" element={<IncidentDetailPage />} />
             <Route path="/notifications" element={<NotificationsPage />} />
             <Route path="/notifications/preferences" element={<NotificationPreferencesPage />} />
-          </Route>
 
-          {/* Admin only */}
-          <Route element={<AdminRoute />}>
+            {/* Role dashboards */}
+            <Route path="/staff" element={<StaffDashboard />} />
+            <Route path="/technician" element={<TechnicianDashboard />} />
+
+            {/* Admin */}
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/admin/sla" element={<SLADashboard />} />
           </Route>
 
-          {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>

@@ -14,9 +14,10 @@ export default function Navbar() {
       .catch(() => {})
   }, [])
 
+  // On logout → go to public landing page (not /login)
   const handleLogout = () => {
     logout()
-    navigate('/')   // ← back to landing page
+    navigate('/')
   }
 
   return (
@@ -64,8 +65,7 @@ export default function Navbar() {
         <button onClick={handleLogout} style={{
           padding: '6px 14px', borderRadius: 'var(--radius-md)',
           border: '1px solid var(--gray-200)', background: 'transparent',
-          fontSize: 13, color: 'var(--gray-600)', transition: 'all var(--transition)',
-          cursor: 'pointer'
+          fontSize: 13, color: 'var(--gray-600)', transition: 'all var(--transition)'
         }}
           onMouseOver={e => e.target.style.borderColor = 'var(--green-mid)'}
           onMouseOut={e => e.target.style.borderColor = 'var(--gray-200)'}

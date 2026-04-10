@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
-const navItems = [
+const commonItems = [
   { to: '/resources', label: 'Resources', icon: '⬡' },
   { to: '/bookings', label: 'Bookings', icon: '◫' },
   { to: '/incidents', label: 'Incidents', icon: '◈' },
@@ -14,7 +14,16 @@ const adminItems = [
 ]
 
 export default function Sidebar() {
-  const { isAdmin } = useAuth()
+  const { user, isAdmin } = useAuth()
+
+  // Dashboard link depends on role
+  const dashboardLink = isAdmin()
+    ? { to: '/admin', label: 'Dashboard', icon: '▤' }
+    : user?.role === 'STAFF'
+      ? { to: '/dashboard/staff', label: 'Dashboard', icon: '▤' }
+      : { to: '/dashboard/student', label: 'Dashboard', icon: '▤' }
+
+  const navItems = [dashboardLink, ...commonItems]
 
   return (
     <aside style={{
@@ -27,12 +36,12 @@ export default function Sidebar() {
         padding: '28px 24px 24px',
         borderBottom: '1px solid rgba(0,237,100,0.08)'
       }}>
-        <span style={{
-          fontSize: 20, fontWeight: 600, color: 'var(--white)',
-          letterSpacing: '-0.5px'
-        }}>
+        <span style={{ fontSize: 20, fontWeight: 600, color: 'var(--white)', letterSpacing: '-0.5px' }}>
           Akade<span style={{ color: 'var(--green-bright)' }}>mi</span>
         </span>
+        <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+          {user?.role}
+        </p>
       </div>
 
       {/* Nav */}
@@ -54,6 +63,7 @@ export default function Sidebar() {
           ))}
         </div>
 
+        {/* Admin-only section */}
         {isAdmin() && (
           <div style={{ marginTop: 24 }}>
             <p style={{

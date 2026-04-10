@@ -1,16 +1,28 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import api from '../../api/axiosInstance'
 import toast from 'react-hot-toast'
 import { getErrorMessage } from '../../utils/helpers'
 
 export default function LoginPage() {
-  const { login } = useAuth()
+  const { login, user } = useAuth()
   const navigate = useNavigate()
-  const [tab, setTab] = useState('login')
+  const [searchParams] = useSearchParams()
+  const [tab, setTab] = useState(searchParams.get('tab') === 'register' ? 'register' : 'login')
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState({ name: '', email: '', password: '' })
+
+  // If already logged in, redirect based on role
+  useEffect(() => {
+    if (user) redirectByRole(user)
+  }, [user])
+
+  const redirectByRole = (u) => {
+    if (u.role === 'ADMIN') navigate('/admin', { replace: true })
+    else if (u.role === 'STAFF') navigate('/dashboard/staff', { replace: true })
+    else navigate('/dashboard/student', { replace: true })
+  }
 
   const update = (k, v) => setForm(p => ({ ...p, [k]: v }))
 
@@ -22,7 +34,7 @@ export default function LoginPage() {
         const res = await api.post('/auth/login', { email: form.email, password: form.password })
         const { token, refreshToken, ...userData } = res.data.data
         login(userData, token, refreshToken)
-        navigate('/')
+        redirectByRole(userData)
       } else {
         await api.post('/auth/register', { name: form.name, email: form.email, password: form.password })
         toast.success('Account created! Please login.')
@@ -48,6 +60,13 @@ export default function LoginPage() {
       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24
     }}>
       <div style={{ width: '100%', maxWidth: 400 }}>
+        {/* Back to landing */}
+        <div style={{ textAlign: 'center', marginBottom: 8 }}>
+          <a href="/" style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', textDecoration: 'none' }}>
+            ← Back to home
+          </a>
+        </div>
+
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: 40 }}>
           <h1 style={{ fontSize: 32, fontWeight: 600, color: 'var(--white)', letterSpacing: '-1px' }}>
@@ -75,7 +94,8 @@ export default function LoginPage() {
                 background: tab === t ? 'var(--white)' : 'transparent',
                 color: tab === t ? 'var(--green-deepest)' : 'var(--gray-400)',
                 boxShadow: tab === t ? 'var(--shadow-sm)' : 'none',
-                transition: 'all var(--transition)', textTransform: 'capitalize'
+                transition: 'all var(--transition)', textTransform: 'capitalize',
+                cursor: 'pointer'
               }}>{t}</button>
             ))}
           </div>
@@ -112,11 +132,11 @@ export default function LoginPage() {
           {/* Google OAuth */}
           <div style={{ marginTop: 20, textAlign: 'center' }}>
             <p style={{ fontSize: 12, color: 'var(--gray-400)', marginBottom: 12 }}>or continue with</p>
-            <a href="http://localhost:8081/oauth2/authorize/google" style={{
+            <a href="http://localhost:8081/oauth2/authorization/google" style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
               padding: '10px 16px', borderRadius: 'var(--radius-md)',
               border: '1px solid var(--gray-200)', fontSize: 14, color: 'var(--gray-600)',
-              fontWeight: 500, transition: 'border-color var(--transition)'
+              fontWeight: 500, transition: 'border-color var(--transition)', textDecoration: 'none'
             }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>

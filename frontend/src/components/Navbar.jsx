@@ -14,7 +14,10 @@ export default function Navbar() {
       .catch(() => {})
   }, [])
 
-  const handleLogout = () => { logout(); navigate('/login') }
+  const handleLogout = () => {
+    logout()
+    navigate('/')   // ← back to landing page
+  }
 
   return (
     <header style={{
@@ -61,7 +64,8 @@ export default function Navbar() {
         <button onClick={handleLogout} style={{
           padding: '6px 14px', borderRadius: 'var(--radius-md)',
           border: '1px solid var(--gray-200)', background: 'transparent',
-          fontSize: 13, color: 'var(--gray-600)', transition: 'all var(--transition)'
+          fontSize: 13, color: 'var(--gray-600)', transition: 'all var(--transition)',
+          cursor: 'pointer'
         }}
           onMouseOver={e => e.target.style.borderColor = 'var(--green-mid)'}
           onMouseOut={e => e.target.style.borderColor = 'var(--gray-200)'}

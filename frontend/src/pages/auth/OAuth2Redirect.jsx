@@ -13,11 +13,13 @@ export default function OAuth2Redirect() {
     const refreshToken = params.get('refreshToken')
     if (!token) { navigate('/login'); return }
 
-    // Store token then fetch user info
     localStorage.setItem('token', token)
     api.get('/auth/me').then(res => {
-      login(res.data.data, token, refreshToken)
-      navigate('/')
+      const userData = res.data.data
+      login(userData, token, refreshToken)
+      if (userData.role === 'ADMIN') navigate('/admin', { replace: true })
+      else if (userData.role === 'STAFF') navigate('/dashboard/staff', { replace: true })
+      else navigate('/dashboard/student', { replace: true })
     }).catch(() => navigate('/login'))
   }, [])
 

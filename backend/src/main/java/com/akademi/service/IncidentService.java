@@ -60,6 +60,11 @@ public class IncidentService {
         return incidentRepository.findByReportedById(userId);
     }
 
+    // Technician: tickets assigned to them
+    public List<Incident> getAssignedIncidents(Long technicianId) {
+        return incidentRepository.findByAssignedToId(technicianId);
+    }
+
     public Incident getIncidentById(Long id) {
         return incidentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Incident", id));
@@ -76,6 +81,13 @@ public class IncidentService {
             incident.setResolvedAt(LocalDateTime.now());
         }
 
+        return incidentRepository.save(incident);
+    }
+
+    // Technician adds a resolution note (stored in resolutionNote field)
+    public Incident addResolutionNote(Long id, String note, User updatedBy) {
+        Incident incident = getIncidentById(id);
+        incident.setResolutionNote(note);
         return incidentRepository.save(incident);
     }
 

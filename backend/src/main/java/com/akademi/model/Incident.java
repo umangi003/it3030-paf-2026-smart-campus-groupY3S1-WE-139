@@ -33,6 +33,10 @@ public class Incident {
 
     private String imageUrl;
 
+    // Resolution note added by technician or admin
+    @Column(name = "resolution_note", length = 2000)
+    private String resolutionNote;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "reported_by", nullable = false)
     private User reportedBy;

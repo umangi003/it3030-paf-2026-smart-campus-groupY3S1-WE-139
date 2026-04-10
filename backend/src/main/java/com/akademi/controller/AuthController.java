@@ -11,11 +11,16 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/auth")
@@ -27,8 +32,39 @@ public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider jwtTokenProvider;
 
+    // ── Register (STUDENT or STAFF only — public) ───────────────────────
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<User>> register(
+            @Valid @RequestBody RegisterRequest request) {
+
+        if (userService.existsByEmail(request.getEmail())) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(ApiResponse.error("Email already registered"));
+        }
+
+        // Public registration: only STUDENT and STAFF allowed
+        Role assignedRole = Role.STUDENT;
+        if (request.getRole() == Role.STAFF) {
+            assignedRole = Role.STAFF;
+        }
+
+        User user = User.builder()
+                .name(request.getName())
+                .email(request.getEmail())
+                .password(passwordEncoder.encode(request.getPassword()))
+                .role(assignedRole)
+                .active(true)
+                .build();
+
+        User saved = userService.saveUser(user);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success("Registered successfully", saved));
+    }
+
+    // ── Admin: create a technician account ──────────────────────────────
+    @PostMapping("/register/technician")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<User>> createTechnician(
             @Valid @RequestBody RegisterRequest request) {
 
         if (userService.existsByEmail(request.getEmail())) {
@@ -40,15 +76,16 @@ public class AuthController {
                 .name(request.getName())
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
-                .role(Role.STUDENT)
+                .role(Role.TECHNICIAN)
                 .active(true)
                 .build();
 
         User saved = userService.saveUser(user);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success("Registered successfully", saved));
+                .body(ApiResponse.success("Technician account created", saved));
     }
 
+    // ── Login ────────────────────────────────────────────────────────────
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<LoginResponse>> login(
             @Valid @RequestBody LoginRequest request) {
@@ -74,13 +111,43 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success("Login successful", loginResponse));
     }
 
-    // ── Inner classes ──────────────────────────────────────────────────
+    // ── Me (used by OAuth2 redirect) ─────────────────────────────────────
+    @GetMapping("/me")
+    public ResponseEntity<ApiResponse<LoginResponse>> me(
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        if (userDetails == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.error("Not authenticated"));
+        }
+
+        User user = userService.getUserByEmail(userDetails.getUsername());
+
+        LoginResponse response = LoginResponse.builder()
+                .email(user.getEmail())
+                .name(user.getName())
+                .role(user.getRole().name())
+                .build();
+
+        return ResponseEntity.ok(ApiResponse.success("ok", response));
+    }
+
+    // ── Admin: list all technician accounts (used for assignment dropdown) ──
+    @GetMapping("/users/technicians")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<List<User>>> getTechnicians() {
+        List<User> technicians = userService.getUsersByRole(Role.TECHNICIAN);
+        return ResponseEntity.ok(ApiResponse.success("Technicians", technicians));
+    }
+
+    // ── Inner classes ────────────────────────────────────────────────────
 
     @Getter @Setter
     public static class RegisterRequest {
         @NotBlank private String name;
         @Email @NotBlank private String email;
         @NotBlank private String password;
+        private Role role; // STUDENT (default) or STAFF for public register
     }
 
     @Getter @Setter

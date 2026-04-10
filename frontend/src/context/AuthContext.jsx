@@ -19,7 +19,7 @@ export function AuthProvider({ children }) {
     setUser(userData)
     setToken(jwt)
     localStorage.setItem('token', jwt)
-    localStorage.setItem('refreshToken', refreshJwt)
+    if (refreshJwt) localStorage.setItem('refreshToken', refreshJwt)
     localStorage.setItem('user', JSON.stringify(userData))
   }
 
@@ -31,10 +31,27 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('user')
   }
 
-  const isAdmin = () => user?.role === 'ADMIN'
+  const isAdmin       = () => user?.role === 'ADMIN'
+  const isStaff       = () => user?.role === 'STAFF'
+  const isStudent     = () => user?.role === 'STUDENT'
+  const isTechnician  = () => user?.role === 'TECHNICIAN'
+
+  // Returns the default home route for the current user's role
+  const getHomePath = () => {
+    if (!user) return '/'
+    if (user.role === 'ADMIN')      return '/admin'
+    if (user.role === 'TECHNICIAN') return '/technician'
+    if (user.role === 'STAFF')      return '/staff'
+    return '/' // STUDENT → public landing (logged-in view)
+  }
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, logout, isAdmin }}>
+    <AuthContext.Provider value={{
+      user, token, loading,
+      login, logout,
+      isAdmin, isStaff, isStudent, isTechnician,
+      getHomePath,
+    }}>
       {children}
     </AuthContext.Provider>
   )

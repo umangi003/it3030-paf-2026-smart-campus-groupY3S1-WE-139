@@ -1,28 +1,17 @@
-import { useState, useEffect } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import api from '../../api/axiosInstance'
 import toast from 'react-hot-toast'
 import { getErrorMessage } from '../../utils/helpers'
 
 export default function LoginPage() {
-  const { login, user } = useAuth()
+  const { login, getHomePath } = useAuth()
   const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
-  const [tab, setTab] = useState(searchParams.get('tab') === 'register' ? 'register' : 'login')
+  const [tab, setTab] = useState('login')
   const [loading, setLoading] = useState(false)
+  const [role, setRole] = useState('STUDENT')
   const [form, setForm] = useState({ name: '', email: '', password: '' })
-
-  // If already logged in, redirect based on role
-  useEffect(() => {
-    if (user) redirectByRole(user)
-  }, [user])
-
-  const redirectByRole = (u) => {
-    if (u.role === 'ADMIN') navigate('/admin', { replace: true })
-    else if (u.role === 'STAFF') navigate('/dashboard/staff', { replace: true })
-    else navigate('/dashboard/student', { replace: true })
-  }
 
   const update = (k, v) => setForm(p => ({ ...p, [k]: v }))
 
@@ -34,9 +23,17 @@ export default function LoginPage() {
         const res = await api.post('/auth/login', { email: form.email, password: form.password })
         const { token, refreshToken, ...userData } = res.data.data
         login(userData, token, refreshToken)
-        redirectByRole(userData)
+        // Use getHomePath from context — single source of truth for redirects
+        // We need the path based on the freshly logged-in userData, not the stale context
+        const path = getPathForRole(userData.role)
+        navigate(path, { replace: true })
       } else {
-        await api.post('/auth/register', { name: form.name, email: form.email, password: form.password })
+        await api.post('/auth/register', {
+          name: form.name,
+          email: form.email,
+          password: form.password,
+          role: role,
+        })
         toast.success('Account created! Please login.')
         setTab('login')
       }
@@ -47,6 +44,13 @@ export default function LoginPage() {
     }
   }
 
+  const getPathForRole = (r) => {
+    if (r === 'ADMIN')      return '/admin'
+    if (r === 'TECHNICIAN') return '/technician'
+    if (r === 'STAFF')      return '/staff'
+    return '/'
+  }
+
   const inputStyle = {
     width: '100%', padding: '10px 14px', borderRadius: 'var(--radius-md)',
     border: '1px solid var(--gray-200)', fontSize: 14, outline: 'none',
@@ -54,19 +58,22 @@ export default function LoginPage() {
     transition: 'border-color var(--transition)', fontFamily: 'var(--font-sans)'
   }
 
+  const roleBtn = (r) => ({
+    flex: 1, padding: '10px 8px', borderRadius: 'var(--radius-md)',
+    border: `2px solid ${role === r ? 'var(--green-mid)' : 'var(--gray-200)'}`,
+    background: role === r ? 'rgba(0,104,74,0.06)' : 'var(--white)',
+    color: role === r ? 'var(--green-mid)' : 'var(--gray-600)',
+    fontSize: 13, fontWeight: role === r ? 600 : 400,
+    cursor: 'pointer', transition: 'all var(--transition)',
+    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+  })
+
   return (
     <div style={{
       minHeight: '100vh', background: 'var(--green-deepest)',
       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24
     }}>
-      <div style={{ width: '100%', maxWidth: 400 }}>
-        {/* Back to landing */}
-        <div style={{ textAlign: 'center', marginBottom: 8 }}>
-          <a href="/" style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', textDecoration: 'none' }}>
-            ← Back to home
-          </a>
-        </div>
-
+      <div style={{ width: '100%', maxWidth: 420 }}>
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: 40 }}>
           <h1 style={{ fontSize: 32, fontWeight: 600, color: 'var(--white)', letterSpacing: '-1px' }}>
@@ -77,7 +84,6 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* Card */}
         <div style={{
           background: 'var(--white)', borderRadius: 'var(--radius-lg)',
           padding: 32, boxShadow: 'var(--shadow-lg)'
@@ -94,20 +100,42 @@ export default function LoginPage() {
                 background: tab === t ? 'var(--white)' : 'transparent',
                 color: tab === t ? 'var(--green-deepest)' : 'var(--gray-400)',
                 boxShadow: tab === t ? 'var(--shadow-sm)' : 'none',
-                transition: 'all var(--transition)', textTransform: 'capitalize',
-                cursor: 'pointer'
+                transition: 'all var(--transition)', textTransform: 'capitalize'
               }}>{t}</button>
             ))}
           </div>
 
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {tab === 'register' && (
-              <div>
-                <label style={{ fontSize: 13, fontWeight: 500, color: 'var(--gray-600)', display: 'block', marginBottom: 6 }}>Full Name</label>
-                <input style={inputStyle} placeholder="John Doe" value={form.name}
-                  onChange={e => update('name', e.target.value)} required />
-              </div>
+              <>
+                {/* Role selector — only STUDENT and STAFF can self-register */}
+                <div>
+                  <label style={{ fontSize: 13, fontWeight: 500, color: 'var(--gray-600)', display: 'block', marginBottom: 8 }}>
+                    I am a...
+                  </label>
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <button type="button" style={roleBtn('STUDENT')} onClick={() => setRole('STUDENT')}>
+                      <span style={{ fontSize: 20 }}>🎓</span>
+                      Student
+                    </button>
+                    <button type="button" style={roleBtn('STAFF')} onClick={() => setRole('STAFF')}>
+                      <span style={{ fontSize: 20 }}>🧑‍💼</span>
+                      Staff Member
+                    </button>
+                  </div>
+                  <p style={{ fontSize: 11, color: 'var(--gray-400)', marginTop: 8 }}>
+                    Technician and Admin accounts are created by system administrators.
+                  </p>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: 13, fontWeight: 500, color: 'var(--gray-600)', display: 'block', marginBottom: 6 }}>Full Name</label>
+                  <input style={inputStyle} placeholder="John Doe" value={form.name}
+                    onChange={e => update('name', e.target.value)} required />
+                </div>
+              </>
             )}
+
             <div>
               <label style={{ fontSize: 13, fontWeight: 500, color: 'var(--gray-600)', display: 'block', marginBottom: 6 }}>Email</label>
               <input style={inputStyle} type="email" placeholder="you@university.edu" value={form.email}
@@ -132,11 +160,11 @@ export default function LoginPage() {
           {/* Google OAuth */}
           <div style={{ marginTop: 20, textAlign: 'center' }}>
             <p style={{ fontSize: 12, color: 'var(--gray-400)', marginBottom: 12 }}>or continue with</p>
-            <a href="http://localhost:8081/oauth2/authorization/google" style={{
+            <a href="http://localhost:8080/oauth2/authorize/google" style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
               padding: '10px 16px', borderRadius: 'var(--radius-md)',
               border: '1px solid var(--gray-200)', fontSize: 14, color: 'var(--gray-600)',
-              fontWeight: 500, transition: 'border-color var(--transition)', textDecoration: 'none'
+              fontWeight: 500, transition: 'border-color var(--transition)'
             }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
@@ -145,6 +173,12 @@ export default function LoginPage() {
                 <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
               </svg>
               Google
+            </a>
+          </div>
+
+          <div style={{ marginTop: 16, textAlign: 'center' }}>
+            <a href="/" style={{ fontSize: 12, color: 'var(--gray-400)', textDecoration: 'none' }}>
+              ← Back to browse resources
             </a>
           </div>
         </div>

@@ -1,5 +1,6 @@
 package com.akademi.service;
 
+import com.akademi.enums.Role;
 import com.akademi.exception.ResourceNotFoundException;
 import com.akademi.model.User;
 import com.akademi.repository.UserRepository;
@@ -41,6 +42,11 @@ public class UserService implements UserDetailsService {
 
     public List<User> getAllUsers() {
         return userRepository.findAll();
+    }
+
+    // Used for populating technician assignment dropdown in admin dashboard
+    public List<User> getUsersByRole(Role role) {
+        return userRepository.findByRole(role);
     }
 
     public User saveUser(User user) {

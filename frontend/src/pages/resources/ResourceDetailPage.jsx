@@ -7,6 +7,8 @@ import Button from '../../components/common/Button'
 import toast from 'react-hot-toast'
 import { getErrorMessage } from '../../utils/helpers'
 
+const BOOKABLE_STATUSES = ['AVAILABLE']
+
 export default function ResourceDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -18,7 +20,10 @@ export default function ResourceDetailPage() {
 
   useEffect(() => {
     resourceApi.getById(id)
-      .then(r => { setResource(r.data.data); setForm(r.data.data) })
+      .then(r => {
+        setResource(r.data.data)
+        setForm(r.data.data)
+      })
       .catch(() => toast.error('Resource not found'))
       .finally(() => setLoading(false))
   }, [id])
@@ -26,7 +31,16 @@ export default function ResourceDetailPage() {
   const handleUpdate = async (e) => {
     e.preventDefault()
     try {
-      const res = await resourceApi.update(id, form)
+      const res = await resourceApi.update(id, {
+        name: form.name,
+        description: form.description,
+        location: form.location,
+        capacity: form.capacity ? Number(form.capacity) : null,
+        status: form.status,
+        imageUrl: form.imageUrl || null,
+        openingTime: form.openingTime || null,
+        closingTime: form.closingTime || null,
+      })
       setResource(res.data.data)
       setEditing(false)
       toast.success('Resource updated')
@@ -43,13 +57,30 @@ export default function ResourceDetailPage() {
   }
 
   const inputStyle = {
-    width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-md)',
+    width: '100%', padding: '8px 12px', borderRadius: 'var(--radius-md)',
     border: '1px solid var(--gray-200)', fontSize: 14, outline: 'none',
-    fontFamily: 'var(--font-sans)', color: 'var(--green-deepest)'
+    fontFamily: 'var(--font-sans)', color: 'var(--green-deepest)',
+    boxSizing: 'border-box'
   }
+
+  const labelStyle = {
+    fontSize: 12, fontWeight: 500, color: 'var(--gray-600)',
+    display: 'block', marginBottom: 4
+  }
+
+  const rowStyle = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }
 
   if (loading) return <p style={{ color: 'var(--gray-400)', fontSize: 14 }}>Loading...</p>
   if (!resource) return <p style={{ color: 'var(--gray-400)', fontSize: 14 }}>Resource not found.</p>
+
+  const canBook = BOOKABLE_STATUSES.includes(resource.status)
+
+  // Human-friendly reason why booking is blocked
+  const bookingBlockedReason = {
+    UNAVAILABLE: 'This resource is currently unavailable for booking.',
+    MAINTENANCE: 'This resource is under maintenance and cannot be booked.',
+    RETIRED:     'This resource has been retired and is no longer bookable.',
+  }[resource.status]
 
   return (
     <div style={{ maxWidth: 640 }}>
@@ -60,6 +91,15 @@ export default function ResourceDetailPage() {
       }}>← Back to Resources</button>
 
       <div style={{ background: 'var(--white)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--gray-200)', overflow: 'hidden' }}>
+
+        {/* Resource Image */}
+        {resource.imageUrl && !editing && (
+          <img src={resource.imageUrl} alt={resource.name}
+            style={{ width: '100%', height: 200, objectFit: 'cover' }}
+            onError={e => { e.target.style.display = 'none' }}
+          />
+        )}
+
         {/* Header */}
         <div style={{ padding: '24px', borderBottom: '1px solid var(--gray-100)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -79,44 +119,116 @@ export default function ResourceDetailPage() {
         {/* Content */}
         <div style={{ padding: 24 }}>
           {editing ? (
-            <form onSubmit={handleUpdate} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              {[['name', 'Name'], ['location', 'Location'], ['description', 'Description']].map(([k, l]) => (
-                <div key={k}>
-                  <label style={{ fontSize: 13, fontWeight: 500, color: 'var(--gray-600)', display: 'block', marginBottom: 5 }}>{l}</label>
-                  {k === 'description'
-                    ? <textarea style={{ ...inputStyle, height: 80 }} value={form[k] || ''} onChange={e => setForm(p => ({ ...p, [k]: e.target.value }))} />
-                    : <input style={inputStyle} value={form[k] || ''} onChange={e => setForm(p => ({ ...p, [k]: e.target.value }))} />}
+            <form onSubmit={handleUpdate} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+
+              {/* Name + Location */}
+              <div style={rowStyle}>
+                <div>
+                  <label style={labelStyle}>Name *</label>
+                  <input style={inputStyle} value={form.name || ''} required
+                    onChange={e => setForm(p => ({ ...p, name: e.target.value }))} />
                 </div>
-              ))}
-              <div>
-                <label style={{ fontSize: 13, fontWeight: 500, color: 'var(--gray-600)', display: 'block', marginBottom: 5 }}>Status</label>
-                <select style={inputStyle} value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))}>
-                  {['AVAILABLE', 'UNAVAILABLE', 'MAINTENANCE', 'RETIRED'].map(s => <option key={s}>{s}</option>)}
-                </select>
+                <div>
+                  <label style={labelStyle}>Location *</label>
+                  <input style={inputStyle} value={form.location || ''} required
+                    onChange={e => setForm(p => ({ ...p, location: e.target.value }))} />
+                </div>
               </div>
-              <div style={{ display: 'flex', gap: 10 }}>
-                <Button type="submit">Save</Button>
-                <Button variant="outline" onClick={() => setEditing(false)}>Cancel</Button>
+
+              {/* Capacity + Status */}
+              <div style={rowStyle}>
+                <div>
+                  <label style={labelStyle}>Capacity</label>
+                  <input style={inputStyle} type="number" value={form.capacity || ''}
+                    onChange={e => setForm(p => ({ ...p, capacity: e.target.value }))} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Status *</label>
+                  <select style={inputStyle} value={form.status || 'AVAILABLE'}
+                    onChange={e => setForm(p => ({ ...p, status: e.target.value }))}>
+                    {['AVAILABLE', 'UNAVAILABLE', 'MAINTENANCE', 'RETIRED'].map(s => <option key={s}>{s}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              {/* Opening + Closing Time */}
+              <div style={rowStyle}>
+                <div>
+                  <label style={labelStyle}>Opening Time</label>
+                  <input style={inputStyle} type="time"
+                    value={form.openingTime || ''}
+                    onChange={e => setForm(p => ({ ...p, openingTime: e.target.value }))} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Closing Time</label>
+                  <input style={inputStyle} type="time"
+                    value={form.closingTime || ''}
+                    onChange={e => setForm(p => ({ ...p, closingTime: e.target.value }))} />
+                </div>
+              </div>
+
+              {/* Image URL */}
+              <div>
+                <label style={labelStyle}>Image URL</label>
+                <input style={inputStyle} type="url" value={form.imageUrl || ''} placeholder="https://..."
+                  onChange={e => setForm(p => ({ ...p, imageUrl: e.target.value }))} />
+                {form.imageUrl && (
+                  <img src={form.imageUrl} alt="preview"
+                    style={{ marginTop: 8, width: '100%', height: 120, objectFit: 'cover', borderRadius: 'var(--radius-md)', border: '1px solid var(--gray-200)' }}
+                    onError={e => { e.target.style.display = 'none' }} />
+                )}
+              </div>
+
+              {/* Description */}
+              <div>
+                <label style={labelStyle}>Description</label>
+                <textarea style={{ ...inputStyle, height: 80, resize: 'vertical' }}
+                  value={form.description || ''}
+                  onChange={e => setForm(p => ({ ...p, description: e.target.value }))} />
+              </div>
+
+              <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
+                <Button type="submit">Save Changes</Button>
+                <Button variant="outline" type="button" onClick={() => setEditing(false)}>Cancel</Button>
               </div>
             </form>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               {[
-                ['Location', resource.location],
-                ['Capacity', resource.capacity ? `${resource.capacity} people` : '—'],
+                ['Location',    resource.location],
+                ['Capacity',    resource.capacity ? `${resource.capacity} people` : '—'],
                 ['Description', resource.description || '—'],
-                ['Opening', resource.openingTime || '—'],
-                ['Closing', resource.closingTime || '—'],
+                ['Opening',     resource.openingTime || '—'],
+                ['Closing',     resource.closingTime || '—'],
+                ['Image URL',   resource.imageUrl
+                  ? <a href={resource.imageUrl} target="_blank" rel="noreferrer"
+                      style={{ color: 'var(--green-mid)', fontSize: 13 }}>View image ↗</a>
+                  : '—'],
               ].map(([label, value]) => (
                 <div key={label} style={{ display: 'flex', gap: 24 }}>
                   <span style={{ fontSize: 13, color: 'var(--gray-400)', width: 90, flexShrink: 0 }}>{label}</span>
                   <span style={{ fontSize: 14, color: 'var(--green-deepest)' }}>{value}</span>
                 </div>
               ))}
+
+              {/* Booking section */}
               <div style={{ marginTop: 8 }}>
-                <Button onClick={() => navigate(`/bookings/new?resourceId=${resource.id}`)}>
-                  Book this Resource
-                </Button>
+                {canBook ? (
+                  <Button onClick={() => navigate(`/bookings/new?resourceId=${resource.id}`)}>
+                    Book this Resource
+                  </Button>
+                ) : (
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    padding: '12px 16px', borderRadius: 'var(--radius-md)',
+                    background: '#fef3f2', border: '1px solid #fecdc9',
+                  }}>
+                    <span style={{ fontSize: 16 }}>🚫</span>
+                    <span style={{ fontSize: 13, color: '#b42318' }}>
+                      {bookingBlockedReason}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           )}

@@ -13,8 +13,8 @@ const staffItems = [
 ]
 
 const technicianItems = [
-  { to: '/technician',         label: 'My Dashboard',     icon: '🔧' },
-  { to: '/incidents',          label: 'Assigned Tickets',  icon: '◈' },
+  { to: '/technician', label: 'My Dashboard',    icon: '🔧' },
+  { to: '/notifications', label: 'Notifications', icon: '◎' },
 ]
 
 const adminItems = [
@@ -67,21 +67,23 @@ export default function Sidebar() {
 
       {/* Nav */}
       <nav style={{ flex: 1, padding: '16px 12px', overflowY: 'auto' }}>
-        <div style={{ marginBottom: 8 }}>
-          {commonItems.map(item => <NavItem key={item.to} {...item} />)}
-        </div>
+
+        {/* Technician gets their own simplified nav */}
+        {isTechnician() ? (
+          <div>
+            <SectionLabel text="Technician" />
+            {technicianItems.map(item => <NavItem key={item.to} {...item} />)}
+          </div>
+        ) : (
+          <div style={{ marginBottom: 8 }}>
+            {commonItems.map(item => <NavItem key={item.to} {...item} />)}
+          </div>
+        )}
 
         {isStaff() && (
           <div style={{ marginTop: 24 }}>
             <SectionLabel text="Staff" />
             {staffItems.map(item => <NavItem key={item.to} {...item} />)}
-          </div>
-        )}
-
-        {isTechnician() && (
-          <div style={{ marginTop: 24 }}>
-            <SectionLabel text="Technician" />
-            {technicianItems.map(item => <NavItem key={`tech-${item.to}-${item.label}`} {...item} />)}
           </div>
         )}
 

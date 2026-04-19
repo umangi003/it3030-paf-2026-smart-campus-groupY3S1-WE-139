@@ -8,13 +8,34 @@ import Modal from '../../components/common/Modal'
 import toast from 'react-hot-toast'
 import { formatDateTime, getErrorMessage } from '../../utils/helpers'
 
+const EMPTY_FORM = {
+  title: '',
+  description: '',
+  location: '',
+  category: '',
+  priority: '',
+  contactPhone: '',
+}
+
+const STATUSES = ['OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED', 'ESCALATED', 'REJECTED']
+
 export default function IncidentListPage() {
   const navigate = useNavigate()
   const { isAdmin } = useAuth()
   const [incidents, setIncidents] = useState([])
   const [loading, setLoading] = useState(true)
   const [showCreate, setShowCreate] = useState(false)
-  const [form, setForm] = useState({ title: '', description: '', location: '' })
+  const [form, setForm] = useState(EMPTY_FORM)
+  const [imageFiles, setImageFiles] = useState([])
+  const [imageError, setImageError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [showRejectModal, setShowRejectModal] = useState(false)
+  const [rejectReason, setRejectReason] = useState('')
+  const [rejectingId, setRejectingId] = useState(null)
+  const [rejecting, setRejecting] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deletingId, setDeletingId] = useState(null)
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => { fetchIncidents() }, [])
 
@@ -26,22 +47,120 @@ export default function IncidentListPage() {
     finally { setLoading(false) }
   }
 
+  const handleImageChange = (e) => {
+    const selected = Array.from(e.target.files)
+    if (selected.length > 3) {
+      setImageError('Maximum 3 images allowed.')
+      return
+    }
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+    const invalid = selected.find(f => !validTypes.includes(f.type))
+    if (invalid) {
+      setImageError('Only image files are allowed (JPG, PNG, WEBP, GIF).')
+      return
+    }
+    setImageError('')
+    setImageFiles(selected)
+  }
+
   const handleCreate = async (e) => {
     e.preventDefault()
+    setSubmitting(true)
     try {
-      await incidentApi.create(form)
-      toast.success('Incident reported')
+      const res = await incidentApi.create(form)
+      const newTicket = res.data.data || res.data
+      const ticketId = newTicket?.id
+      if (imageFiles.length > 0) {
+        await incidentApi.uploadAttachments(ticketId, imageFiles)
+      }
+      setIncidents(prev => [newTicket, ...prev])
+      toast.success('Incident reported successfully!')
       setShowCreate(false)
-      setForm({ title: '', description: '', location: '' })
-      fetchIncidents()
+      setForm(EMPTY_FORM)
+      setImageFiles([])
+      setImageError('')
+      const updated = isAdmin() ? await incidentApi.getAll() : await incidentApi.getMy()
+      setIncidents(updated.data.data || [])
+    } catch (err) {
+      toast.error(getErrorMessage(err) || 'Failed to submit incident. Please try again.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const handleClose = () => {
+    setShowCreate(false)
+    setForm(EMPTY_FORM)
+    setImageFiles([])
+    setImageError('')
+  }
+
+  const handleStatusChange = async (e, incId, status) => {
+    e.stopPropagation()
+    if (status === 'REJECTED') {
+      setRejectingId(incId)
+      setShowRejectModal(true)
+      return
+    }
+    try {
+      const res = await incidentApi.updateStatus(incId, status)
+      setIncidents(prev => prev.map(i => i.id === incId ? res.data.data : i))
+      toast.success('Status updated')
     } catch (err) { toast.error(getErrorMessage(err)) }
   }
+
+  const handleReject = async () => {
+    if (!rejectReason.trim()) { toast.error('Please provide a rejection reason'); return }
+    setRejecting(true)
+    try {
+      const res = await incidentApi.reject(rejectingId, rejectReason.trim())
+      setIncidents(prev => prev.map(i => i.id === rejectingId ? res.data.data : i))
+      toast.success('Incident rejected')
+      setShowRejectModal(false)
+      setRejectReason('')
+      setRejectingId(null)
+    } catch (err) { toast.error(getErrorMessage(err)) }
+    finally { setRejecting(false) }
+  }
+
+  const confirmDelete = (e, incId) => {
+    e.stopPropagation()
+    setDeletingId(incId)
+    setShowDeleteModal(true)
+  }
+
+  const handleDelete = async () => {
+    setDeleting(true)
+    try {
+      await incidentApi.deleteIncident(deletingId)
+      setIncidents(prev => prev.filter(i => i.id !== deletingId))
+      toast.success('Incident deleted')
+      setShowDeleteModal(false)
+      setDeletingId(null)
+    } catch (err) { toast.error(getErrorMessage(err)) }
+    finally { setDeleting(false) }
+  }
+
+  const priorityStyle = (priority) => ({
+    fontSize: 11, fontWeight: 600, padding: '2px 8px',
+    borderRadius: 'var(--radius-sm)', textTransform: 'uppercase',
+    background: priority === 'CRITICAL' ? '#fee2e2' : priority === 'HIGH' ? '#fef3c7' : priority === 'MEDIUM' ? '#dbeafe' : '#f0fdf4',
+    color: priority === 'CRITICAL' ? '#dc2626' : priority === 'HIGH' ? '#d97706' : priority === 'MEDIUM' ? '#2563eb' : '#16a34a',
+  })
 
   const inputStyle = {
     width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-md)',
     border: '1px solid var(--gray-200)', fontSize: 14, outline: 'none',
-    fontFamily: 'var(--font-sans)', color: 'var(--green-deepest)'
+    fontFamily: 'var(--font-sans)', color: 'var(--green-deepest)',
+    boxSizing: 'border-box',
   }
+
+  const labelStyle = {
+    fontSize: 13, fontWeight: 500, color: 'var(--gray-600)',
+    display: 'block', marginBottom: 5,
+  }
+
+  const fieldStyle = { display: 'flex', flexDirection: 'column' }
 
   return (
     <div>
@@ -52,7 +171,7 @@ export default function IncidentListPage() {
             {isAdmin() ? 'All reported incidents' : 'Your reported issues'}
           </p>
         </div>
-        <Button onClick={() => setShowCreate(true)}>+ Report Incident</Button>
+        {!isAdmin() && <Button onClick={() => setShowCreate(true)}>+ Report Incident</Button>}
       </div>
 
       {loading ? (
@@ -65,56 +184,327 @@ export default function IncidentListPage() {
           <p style={{ color: 'var(--gray-400)', fontSize: 14, marginBottom: 16 }}>No incidents reported</p>
           <Button onClick={() => setShowCreate(true)}>Report an Issue</Button>
         </div>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      ) : isAdmin() ? (
+        // ── Admin grid card layout ──────────────────────────────────────
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 16 }}>
           {incidents.map(inc => (
-            <div key={inc.id} onClick={() => navigate(`/incidents/${inc.id}`)} style={{
+            <div key={inc.id} style={{
               background: 'var(--white)', borderRadius: 'var(--radius-lg)',
-              border: '1px solid var(--gray-200)', padding: '18px 20px',
-              cursor: 'pointer', transition: 'box-shadow var(--transition), border-color var(--transition)'
+              border: '1px solid var(--gray-200)', overflow: 'hidden',
+              display: 'flex', flexDirection: 'column',
+              transition: 'box-shadow var(--transition), border-color var(--transition)',
+              cursor: 'pointer',
             }}
               onMouseOver={e => { e.currentTarget.style.boxShadow = 'var(--shadow-sm)'; e.currentTarget.style.borderColor = 'var(--green-mid)' }}
               onMouseOut={e => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.borderColor = 'var(--gray-200)' }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-                    <h3 style={{ fontSize: 15, fontWeight: 600 }}>{inc.title}</h3>
-                    <StatusBadge status={inc.status} />
-                  </div>
-                  <p style={{ fontSize: 13, color: 'var(--gray-600)', marginBottom: 6 }}>
-                    {inc.description?.slice(0, 100)}{inc.description?.length > 100 ? '...' : ''}
-                  </p>
-                  <div style={{ display: 'flex', gap: 16, fontSize: 12, color: 'var(--gray-400)', fontFamily: 'var(--font-mono)' }}>
-                    <span>📍 {inc.location}</span>
-                    <span>{formatDateTime(inc.createdAt)}</span>
-                  </div>
+              {/* Image thumbnails */}
+              {inc.imageUrls?.length > 0 && (
+                <div style={{ display: 'flex', gap: 4, padding: '10px 10px 0' }}>
+                  {inc.imageUrls.slice(0, 3).map((url, i) => (
+                    <img key={i}
+                      src={`http://localhost:8081${url}`}
+                      alt={`thumb-${i}`}
+                      onClick={e => { e.stopPropagation(); window.open(`http://localhost:8081${url}`, '_blank') }}
+                      style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--gray-200)', cursor: 'zoom-in' }}
+                    />
+                  ))}
                 </div>
+              )}
+
+              {/* Card body */}
+              <div style={{ padding: '14px 16px', flex: 1 }} onClick={() => navigate(`/incidents/${inc.id}`)}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
+                  <StatusBadge status={inc.status} />
+                  {inc.priority && <span style={priorityStyle(inc.priority)}>{inc.priority}</span>}
+                  {inc.category && (
+                    <span style={{ fontSize: 11, color: 'var(--gray-400)', fontFamily: 'var(--font-mono)' }}>
+                      {inc.category}
+                    </span>
+                  )}
+                </div>
+                <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>{inc.title}</h3>
+                <p style={{ fontSize: 13, color: 'var(--gray-600)', marginBottom: 8 }}>
+                  {inc.description?.slice(0, 80)}{inc.description?.length > 80 ? '...' : ''}
+                </p>
+                <div style={{ fontSize: 12, color: 'var(--gray-400)', fontFamily: 'var(--font-mono)' }}>
+                  <span>📍 {inc.location}</span>
+                </div>
+                {inc.reportedByName && (
+                  <div style={{ fontSize: 12, color: 'var(--gray-400)', marginTop: 4 }}>
+                    👤 {inc.reportedByName} · {formatDateTime(inc.createdAt)}
+                  </div>
+                )}
+                {inc.status === 'REJECTED' && inc.rejectionReason && (
+                  <div style={{ marginTop: 8, padding: '6px 10px', background: '#fef2f2', borderRadius: 6, fontSize: 12, color: '#dc2626' }}>
+                    ❌ {inc.rejectionReason}
+                  </div>
+                )}
+              </div>
+
+              {/* Status dropdown + Delete */}
+              <div style={{ padding: '10px 16px', borderTop: '1px solid var(--gray-100)', display: 'flex', gap: 8 }}
+                onClick={e => e.stopPropagation()}>
+                <select
+                  value={inc.status}
+                  onChange={e => handleStatusChange(e, inc.id, e.target.value)}
+                  style={{
+                    flex: 1, padding: '7px 10px', borderRadius: 'var(--radius-md)',
+                    border: '1px solid var(--gray-200)', fontSize: 13,
+                    fontFamily: 'var(--font-sans)', cursor: 'pointer', outline: 'none',
+                    background: '#f8fafc',
+                  }}>
+                  {STATUSES.map(s => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
+                </select>
+                <button onClick={() => navigate(`/incidents/${inc.id}#comments`)} style={{
+                  padding: '7px 12px', borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--gray-200)', background: 'transparent',
+                  fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-sans)',
+                  color: 'var(--gray-600)', whiteSpace: 'nowrap'
+                }}>💬</button>
+                {['CLOSED', 'REJECTED'].includes(inc.status) && (
+                  <button onClick={e => confirmDelete(e, inc.id)} style={{
+                    padding: '7px 12px', borderRadius: 'var(--radius-md)',
+                    border: 'none', background: '#fee2e2', color: '#dc2626',
+                    fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap'
+                  }}>🗑 Delete</button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        // ── Student grid card layout ───────────────────────────────────
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
+          {incidents.map(inc => (
+            <div key={inc.id} style={{
+              background: 'var(--white)', borderRadius: 'var(--radius-lg)',
+              border: '1px solid var(--gray-200)', overflow: 'hidden',
+              display: 'flex', flexDirection: 'column',
+              transition: 'box-shadow var(--transition), border-color var(--transition)',
+              cursor: 'pointer',
+            }}
+              onMouseOver={e => { e.currentTarget.style.boxShadow = 'var(--shadow-sm)'; e.currentTarget.style.borderColor = 'var(--green-mid)' }}
+              onMouseOut={e => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.borderColor = 'var(--gray-200)' }}
+            >
+              {/* Image thumbnails */}
+              {inc.imageUrls?.length > 0 && (
+                <div style={{ display: 'flex', gap: 4, padding: '10px 10px 0' }}>
+                  {inc.imageUrls.slice(0, 3).map((url, i) => (
+                    <img key={i}
+                      src={`http://localhost:8081${url}`}
+                      alt={`thumb-${i}`}
+                      onClick={e => { e.stopPropagation(); window.open(`http://localhost:8081${url}`, '_blank') }}
+                      style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--gray-200)', cursor: 'zoom-in' }}
+                    />
+                  ))}
+                </div>
+              )}
+
+              {/* Card body */}
+              <div style={{ padding: '14px 16px', flex: 1 }} onClick={() => navigate(`/incidents/${inc.id}`)}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
+                  <StatusBadge status={inc.status} />
+                  {inc.priority && <span style={priorityStyle(inc.priority)}>{inc.priority}</span>}
+                  {inc.category && (
+                    <span style={{ fontSize: 11, color: 'var(--gray-400)', fontFamily: 'var(--font-mono)' }}>
+                      {inc.category}
+                    </span>
+                  )}
+                </div>
+                <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>{inc.title}</h3>
+                <p style={{ fontSize: 13, color: 'var(--gray-600)', marginBottom: 8 }}>
+                  {inc.description?.slice(0, 80)}{inc.description?.length > 80 ? '...' : ''}
+                </p>
+                <div style={{ fontSize: 12, color: 'var(--gray-400)', fontFamily: 'var(--font-mono)' }}>
+                  <span>📍 {inc.location}</span>
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--gray-400)', marginTop: 4, fontFamily: 'var(--font-mono)' }}>
+                  {formatDateTime(inc.createdAt)}
+                </div>
+                {inc.status === 'REJECTED' && inc.rejectionReason && (
+                  <div style={{ marginTop: 8, padding: '6px 10px', background: '#fef2f2', borderRadius: 6, fontSize: 12, color: '#dc2626' }}>
+                    ❌ {inc.rejectionReason}
+                  </div>
+                )}
+              </div>
+
+              {/* Footer buttons for student */}
+              <div style={{ padding: '10px 16px', borderTop: '1px solid var(--gray-100)', display: 'flex', gap: 8 }}
+                onClick={e => e.stopPropagation()}>
+                <button onClick={() => navigate(`/incidents/${inc.id}#comments`)} style={{
+                  flex: 1, padding: '7px 12px', borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--gray-200)', background: 'transparent',
+                  fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-sans)',
+                  color: 'var(--gray-600)'
+                }}>💬 Comments</button>
+                {['OPEN', 'REJECTED'].includes(inc.status) && (
+                  <button onClick={e => confirmDelete(e, inc.id)} style={{
+                    padding: '7px 12px', borderRadius: 'var(--radius-md)',
+                    border: 'none', background: '#fee2e2', color: '#dc2626',
+                    fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-sans)'
+                  }}>🗑 Delete</button>
+                )}
               </div>
             </div>
           ))}
         </div>
       )}
 
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div onClick={() => setShowDeleteModal(false)} style={{
+          position: 'fixed', inset: 0,
+          background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)',
+          zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background: '#fff', borderRadius: 16,
+            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
+            width: '100%', maxWidth: 400, padding: 24
+          }}>
+            <h3 style={{ fontSize: 17, fontWeight: 700, color: '#1e293b', marginBottom: 6 }}>Delete Incident</h3>
+            <p style={{ fontSize: 13, color: 'var(--gray-400)', marginBottom: 20 }}>
+              Are you sure you want to delete this incident? This action cannot be undone.
+            </p>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button onClick={() => { setShowDeleteModal(false); setDeletingId(null) }} style={{
+                padding: '8px 16px', borderRadius: 8, border: '1px solid var(--gray-200)',
+                background: '#fff', fontSize: 13, cursor: 'pointer'
+              }}>Cancel</button>
+              <button onClick={handleDelete} disabled={deleting} style={{
+                padding: '8px 16px', borderRadius: 8, border: 'none',
+                background: '#dc2626', color: '#fff', fontSize: 13,
+                cursor: deleting ? 'not-allowed' : 'pointer', opacity: deleting ? 0.7 : 1
+              }}>{deleting ? 'Deleting...' : 'Yes, Delete'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reject Modal */}
+      {showRejectModal && (
+        <div onClick={() => setShowRejectModal(false)} style={{
+          position: 'fixed', inset: 0,
+          background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)',
+          zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background: '#fff', borderRadius: 16,
+            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
+            width: '100%', maxWidth: 440, padding: 24
+          }}>
+            <h3 style={{ fontSize: 17, fontWeight: 700, color: '#1e293b', marginBottom: 6 }}>Reject Incident</h3>
+            <p style={{ fontSize: 13, color: 'var(--gray-400)', marginBottom: 16 }}>
+              Please provide a reason. This will be visible to the student.
+            </p>
+            <textarea
+              autoFocus
+              value={rejectReason}
+              onChange={e => setRejectReason(e.target.value)}
+              placeholder="e.g. Duplicate report, insufficient information..."
+              style={{
+                width: '100%', padding: '10px 12px', borderRadius: 8,
+                border: '1px solid var(--gray-200)', fontSize: 14,
+                fontFamily: 'var(--font-sans)', resize: 'vertical',
+                minHeight: 100, outline: 'none', boxSizing: 'border-box'
+              }}
+            />
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 16 }}>
+              <button onClick={() => { setShowRejectModal(false); setRejectReason(''); setRejectingId(null) }} style={{
+                padding: '8px 16px', borderRadius: 8, border: '1px solid var(--gray-200)',
+                background: '#fff', fontSize: 13, cursor: 'pointer'
+              }}>Cancel</button>
+              <button onClick={handleReject} disabled={rejecting} style={{
+                padding: '8px 16px', borderRadius: 8, border: 'none',
+                background: '#dc2626', color: '#fff', fontSize: 13,
+                cursor: rejecting ? 'not-allowed' : 'pointer', opacity: rejecting ? 0.7 : 1
+              }}>{rejecting ? 'Rejecting...' : 'Confirm Reject'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Create Modal */}
-      <Modal isOpen={showCreate} onClose={() => setShowCreate(false)} title="Report Incident">
+      <Modal isOpen={showCreate} onClose={handleClose} title="Report Incident">
         <form onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div>
-            <label style={{ fontSize: 13, fontWeight: 500, color: 'var(--gray-600)', display: 'block', marginBottom: 5 }}>Title</label>
-            <input style={inputStyle} value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} required />
+          <div style={fieldStyle}>
+            <label style={labelStyle}>Title *</label>
+            <input style={inputStyle} value={form.title}
+              onChange={e => setForm(p => ({ ...p, title: e.target.value }))} required />
           </div>
-          <div>
-            <label style={{ fontSize: 13, fontWeight: 500, color: 'var(--gray-600)', display: 'block', marginBottom: 5 }}>Location</label>
-            <input style={inputStyle} value={form.location} onChange={e => setForm(p => ({ ...p, location: e.target.value }))} required />
+          <div style={fieldStyle}>
+            <label style={labelStyle}>Location *</label>
+            <input style={inputStyle} value={form.location}
+              onChange={e => setForm(p => ({ ...p, location: e.target.value }))} required />
           </div>
-          <div>
-            <label style={{ fontSize: 13, fontWeight: 500, color: 'var(--gray-600)', display: 'block', marginBottom: 5 }}>Description</label>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div style={fieldStyle}>
+              <label style={labelStyle}>Category *</label>
+              <select style={inputStyle} value={form.category}
+                onChange={e => setForm(p => ({ ...p, category: e.target.value }))} required>
+                <option value="">Select category</option>
+                <option value="ELECTRICAL">Electrical</option>
+                <option value="HARDWARE">Hardware</option>
+                <option value="NETWORK">Network</option>
+                <option value="FURNITURE">Furniture</option>
+                <option value="PLUMBING">Plumbing</option>
+                <option value="SOFTWARE">Software</option>
+                <option value="OTHER">Other</option>
+              </select>
+            </div>
+            <div style={fieldStyle}>
+              <label style={labelStyle}>Priority *</label>
+              <select style={inputStyle} value={form.priority}
+                onChange={e => setForm(p => ({ ...p, priority: e.target.value }))} required>
+                <option value="">Select priority</option>
+                <option value="LOW">Low</option>
+                <option value="MEDIUM">Medium</option>
+                <option value="HIGH">High</option>
+                <option value="CRITICAL">Critical</option>
+              </select>
+            </div>
+          </div>
+          <div style={fieldStyle}>
+            <label style={labelStyle}>Description *</label>
             <textarea style={{ ...inputStyle, height: 100, resize: 'vertical' }}
-              value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} required />
+              value={form.description}
+              onChange={e => setForm(p => ({ ...p, description: e.target.value }))} required />
+          </div>
+          <div style={{ borderTop: '1px solid var(--gray-100)', paddingTop: 14 }}>
+            <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--gray-400)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>
+              Contact Details (optional)
+            </p>
+            <div style={fieldStyle}>
+              <label style={labelStyle}>Contact Phone</label>
+              <input type="tel" style={inputStyle} placeholder="e.g. 077 123 4567"
+                value={form.contactPhone}
+                onChange={e => setForm(p => ({ ...p, contactPhone: e.target.value }))} />
+            </div>
+          </div>
+          <div style={{ borderTop: '1px solid var(--gray-100)', paddingTop: 14 }}>
+            <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--gray-400)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>
+              Attachments (max 3 images)
+            </p>
+            <input type="file" accept="image/*" multiple onChange={handleImageChange}
+              style={{ fontSize: 13, color: 'var(--gray-600)' }} />
+            {imageError && (
+              <p style={{ color: '#dc2626', fontSize: 12, marginTop: 6 }}>{imageError}</p>
+            )}
+            {imageFiles.length > 0 && (
+              <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+                {imageFiles.map((f, i) => (
+                  <img key={i} src={URL.createObjectURL(f)} alt={`preview-${i}`}
+                    style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 'var(--radius-md)', border: '1px solid var(--gray-200)' }} />
+                ))}
+              </div>
+            )}
           </div>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 8 }}>
-            <Button variant="outline" onClick={() => setShowCreate(false)}>Cancel</Button>
-            <Button type="submit">Submit Report</Button>
+            <Button variant="outline" onClick={handleClose} type="button">Cancel</Button>
+            <button type="submit" style={{ padding: '9px 18px', background: 'green', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer' }}>
+              Submit Report
+            </button>
           </div>
         </form>
       </Modal>

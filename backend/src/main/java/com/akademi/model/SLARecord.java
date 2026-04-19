@@ -1,5 +1,6 @@
 package com.akademi.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -18,6 +19,7 @@ public class SLARecord {
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "incident_id", nullable = false)
+    @JsonIgnore
     private Incident incident;
 
     @Column(name = "response_due_at", nullable = false)

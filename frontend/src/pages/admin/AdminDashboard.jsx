@@ -57,7 +57,7 @@ export default function AdminDashboard() {
     }
   }
 
-  const unassigned = incidents.filter(i => !i.assignedTo && !['RESOLVED', 'CLOSED'].includes(i.status))
+  const unassigned = incidents.filter(i => !i.assignedToId && !['RESOLVED', 'CLOSED'].includes(i.status))
   const openCount  = incidents.filter(i => i.status === 'OPEN').length
 
   if (loading) return <p style={{ color: 'var(--gray-400)', fontSize: 14 }}>Loading dashboard...</p>

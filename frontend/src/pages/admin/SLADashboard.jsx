@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { incidentApi } from '../../api/incidentApi'
+import api from '../../api/axiosInstance'
 import StatusBadge from '../../components/common/StatusBadge'
 import SLABadge from '../../components/common/SLABadge'
 import Button from '../../components/common/Button'
@@ -11,10 +12,17 @@ import { getSLAPercentage } from '../../utils/slaHelpers'
 export default function SLADashboard() {
   const navigate = useNavigate()
   const [incidents, setIncidents] = useState([])
+  const [technicians, setTechnicians] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
+  const [assigning, setAssigning] = useState(null)
 
-  useEffect(() => { fetchIncidents() }, [])
+  useEffect(() => {
+    fetchIncidents()
+    api.get('/auth/users/technicians')
+      .then(r => setTechnicians(r.data.data || r.data || []))
+      .catch(() => toast.error('Failed to load technicians'))
+  }, [])
 
   const fetchIncidents = async () => {
     try {
@@ -22,6 +30,19 @@ export default function SLADashboard() {
       setIncidents(res.data.data || [])
     } catch { toast.error('Failed to load incidents') }
     finally { setLoading(false) }
+  }
+
+  const handleAssign = async (incidentId, technicianId) => {
+    setAssigning(incidentId)
+    try {
+      await incidentApi.assign(incidentId, technicianId)
+      toast.success('Technician assigned')
+      fetchIncidents()
+    } catch (err) {
+      toast.error(getErrorMessage(err))
+    } finally {
+      setAssigning(null)
+    }
   }
 
   const handleStatusChange = async (id, status) => {
@@ -97,7 +118,7 @@ export default function SLADashboard() {
         <div style={{ background: 'var(--white)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--gray-200)', overflow: 'hidden' }}>
           {/* Table header */}
           <div style={{
-            display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr',
+            display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1.5fr',
             padding: '12px 20px', borderBottom: '1px solid var(--gray-100)',
             background: 'var(--gray-50)'
           }}>
@@ -108,9 +129,10 @@ export default function SLADashboard() {
 
           {filtered.map((inc, i) => {
             const pct = inc.sla ? getSLAPercentage(inc.createdAt, inc.sla.resolveDueAt) : 0
+            const isUnassigned = !inc.assignedToId && !['RESOLVED', 'CLOSED'].includes(inc.status)
             return (
               <div key={inc.id} style={{
-                display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr',
+                display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1.5fr',
                 padding: '14px 20px', borderBottom: i < filtered.length - 1 ? '1px solid var(--gray-100)' : 'none',
                 alignItems: 'center'
               }}>
@@ -118,7 +140,6 @@ export default function SLADashboard() {
                 <div>
                   <p style={{ fontSize: 14, fontWeight: 500, marginBottom: 2 }}>{inc.title}</p>
                   <p style={{ fontSize: 12, color: 'var(--gray-400)' }}>#{inc.id} · {inc.location}</p>
-                  {/* Progress bar */}
                   {inc.sla && (
                     <div style={{ marginTop: 6, height: 3, background: 'var(--gray-100)', borderRadius: 2, maxWidth: 120 }}>
                       <div style={{
@@ -142,20 +163,33 @@ export default function SLADashboard() {
                 </p>
 
                 {/* Action */}
-                <div style={{ display: 'flex', gap: 6 }}>
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
                   <button onClick={() => navigate(`/incidents/${inc.id}`)} style={{
                     padding: '5px 10px', borderRadius: 'var(--radius-sm)',
                     border: '1px solid var(--gray-200)', background: 'transparent',
                     fontSize: 12, cursor: 'pointer', color: 'var(--gray-600)',
                     fontFamily: 'var(--font-sans)'
                   }}>View</button>
-                  {inc.status === 'OPEN' && (
-                    <button onClick={() => handleStatusChange(inc.id, 'IN_PROGRESS')} style={{
-                      padding: '5px 10px', borderRadius: 'var(--radius-sm)',
-                      border: 'none', background: 'var(--green-deepest)',
-                      fontSize: 12, cursor: 'pointer', color: 'var(--white)',
-                      fontFamily: 'var(--font-sans)'
-                    }}>Assign</button>
+
+                  {isUnassigned && (
+                    <select
+                      defaultValue=""
+                      disabled={assigning === inc.id || technicians.length === 0}
+                      onChange={e => { if (e.target.value) handleAssign(inc.id, e.target.value) }}
+                      style={{
+                        padding: '5px 8px', borderRadius: 'var(--radius-sm)',
+                        border: '1px solid var(--gray-200)', fontSize: 12,
+                        fontFamily: 'var(--font-sans)', color: 'var(--green-deepest)',
+                        background: 'var(--white)', cursor: 'pointer'
+                      }}
+                    >
+                      <option value="" disabled>
+                        {assigning === inc.id ? 'Assigning...' : technicians.length === 0 ? 'No technicians' : 'Assign…'}
+                      </option>
+                      {technicians.map(t => (
+                        <option key={t.id} value={t.id}>{t.name}</option>
+                      ))}
+                    </select>
                   )}
                 </div>
               </div>

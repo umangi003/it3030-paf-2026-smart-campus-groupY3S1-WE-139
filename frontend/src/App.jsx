@@ -12,6 +12,7 @@ import ResourceDetailPage from './pages/resources/ResourceDetailPage'
 import BookingListPage from './pages/bookings/BookingListPage'
 import BookingFormPage from './pages/bookings/BookingFormPage'
 import QRCheckInPage from './pages/bookings/QRCheckInPage'
+import QRDisplayPage from './pages/bookings/QRDisplayPage'
 import IncidentListPage from './pages/incidents/IncidentListPage'
 import IncidentDetailPage from './pages/incidents/IncidentDetailPage'
 import NotificationsPage from './pages/notifications/NotificationsPage'
@@ -44,6 +45,9 @@ export default function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/oauth2/redirect" element={<OAuth2Redirect />} />
 
+          {/* QR check-in is PUBLIC — no login needed */}
+          <Route path="/bookings/qr/:token" element={<QRCheckInPage />} />
+
           {/* Public landing — anyone can browse resources */}
           <Route element={<LandingLayout />}>
             <Route path="/" element={<ResourceListPage />} />
@@ -55,7 +59,9 @@ export default function App() {
             <Route path="/resources" element={<ResourceListPage />} />
             <Route path="/bookings" element={<BookingListPage />} />
             <Route path="/bookings/new" element={<BookingFormPage />} />
-            <Route path="/bookings/qr/:token" element={<QRCheckInPage />} />
+            {/* NOTE: /bookings/qr/:token is public above — not repeated here */}
+            {/* QR display is protected — only the logged-in student sees their own QR */}
+            <Route path="/bookings/qr-display/:id" element={<QRDisplayPage />} />
             <Route path="/incidents" element={<IncidentListPage />} />
             <Route path="/incidents/:id" element={<IncidentDetailPage />} />
             <Route path="/notifications" element={<NotificationsPage />} />

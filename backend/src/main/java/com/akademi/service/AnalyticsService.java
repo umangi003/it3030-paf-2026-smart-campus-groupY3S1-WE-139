@@ -21,7 +21,7 @@ public class AnalyticsService {
         return AnalyticsResponse.builder()
                 // Booking stats
                 .totalBookings(bookingRepository.count())
-                .confirmedBookings(bookingRepository.findByStatus(BookingStatus.CONFIRMED).size())
+                .confirmedBookings(bookingRepository.findByStatus(BookingStatus.APPROVED).size())
                 .cancelledBookings(bookingRepository.findByStatus(BookingStatus.CANCELLED).size())
                 .completedBookings(bookingRepository.findByStatus(BookingStatus.COMPLETED).size())
                 // Incident stats

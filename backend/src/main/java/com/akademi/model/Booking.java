@@ -15,7 +15,7 @@ public class Booking {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id; 
+    private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
@@ -36,6 +36,12 @@ public class Booking {
     private BookingStatus status;
 
     private String purpose;
+
+    @Column(name = "attendees")
+    private Integer attendees;
+
+    @Column(name = "rejection_reason", length = 500)
+    private String rejectionReason;
 
     @Column(name = "qr_token")
     private String qrToken;

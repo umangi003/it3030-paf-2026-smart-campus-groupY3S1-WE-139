@@ -1,5 +1,6 @@
-import api from './axiosInstance'
-
 export const qrApi = {
-  verify: (token) => api.get(`/qr/verify/${token}`),
+  verify: (token) =>
+    fetch(`/api/qr/verify/${token}`)
+      .then(res => res.json())
+      .then(data => ({ data })),
 }

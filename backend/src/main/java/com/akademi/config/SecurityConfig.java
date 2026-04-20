@@ -34,7 +34,7 @@ public class SecurityConfig {
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 // Public endpoints
-                .requestMatchers("/auth/**", "/oauth2/**").permitAll()
+                .requestMatchers("/auth/**", "/oauth2/**", "/uploads/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/resources/**").permitAll()
                 .requestMatchers("/qr/verify/**").permitAll()
                 // Admin only

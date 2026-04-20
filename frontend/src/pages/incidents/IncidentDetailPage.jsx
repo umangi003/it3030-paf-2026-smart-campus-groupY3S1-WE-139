@@ -104,14 +104,17 @@ export default function IncidentDetailPage() {
   if (!incident) return <p style={{ color: 'var(--gray-400)', fontSize: 14 }}>Incident not found.</p>
 
   return (
-    <div style={{ maxWidth: 680 }}>
+    // ↓ Widened to fit two columns
+    <div style={{ maxWidth: 1100 }}>
       <button onClick={() => navigate('/incidents')} style={{
         background: 'none', border: 'none', color: 'var(--gray-400)',
         fontSize: 14, cursor: 'pointer', marginBottom: 20
       }}>← Back to Incidents</button>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        {/* Main card */}
+      {/* ↓ Two-column grid: incident detail left, comments right */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: 16, alignItems: 'start' }}>
+
+        {/* ── Left column: Main card ── */}
         <div style={{ background: 'var(--white)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--gray-200)', overflow: 'hidden' }}>
           <div style={{ padding: '24px', borderBottom: '1px solid var(--gray-100)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -139,7 +142,6 @@ export default function IncidentDetailPage() {
           <div style={{ padding: 24 }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
-              {/* Rejection reason banner — visible to everyone */}
               {incident.status === 'REJECTED' && incident.rejectionReason && (
                 <div style={{
                   background: '#fef2f2', border: '1px solid #fecaca',
@@ -155,7 +157,6 @@ export default function IncidentDetailPage() {
                 <p style={{ fontSize: 14, lineHeight: 1.6 }}>{incident.description}</p>
               </div>
 
-              {/* Image Attachments */}
               {incident.imageUrls?.length > 0 && (
                 <div>
                   <p style={{ fontSize: 12, color: 'var(--gray-400)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Attachments</p>
@@ -192,14 +193,14 @@ export default function IncidentDetailPage() {
           </div>
         </div>
 
-        {/* Comments Section */}
+        {/* ── Right column: Comments ── */}
         <div style={{ background: 'var(--white)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--gray-200)', overflow: 'hidden' }}>
           <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--gray-100)' }}>
             <h2 style={{ fontSize: 15, fontWeight: 600 }}>Comments</h2>
           </div>
 
-          {/* Comment list */}
-          <div style={{ padding: '16px 24px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {/* Comment list — scrollable if tall */}
+          <div style={{ padding: '16px 24px', display: 'flex', flexDirection: 'column', gap: 12, maxHeight: 480, overflowY: 'auto' }}>
             {comments.length === 0 ? (
               <p style={{ fontSize: 13, color: 'var(--gray-400)', textAlign: 'center', padding: '16px 0' }}>
                 No comments yet.
@@ -211,7 +212,7 @@ export default function IncidentDetailPage() {
                 border: `1px solid ${c.isOwner ? '#bbf7d0' : 'var(--gray-200)'}`,
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                     <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--green-deepest)' }}>{c.authorName}</span>
                     <span style={{
                       fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 10,
@@ -241,7 +242,6 @@ export default function IncidentDetailPage() {
                   </div>
                 </div>
 
-                {/* Edit mode */}
                 {editingCommentId === c.id ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <textarea
@@ -301,6 +301,7 @@ export default function IncidentDetailPage() {
             </div>
           </div>
         </div>
+
       </div>
 
       {/* Reject Modal */}

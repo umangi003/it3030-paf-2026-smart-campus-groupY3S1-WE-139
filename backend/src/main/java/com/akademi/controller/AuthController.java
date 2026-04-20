@@ -2,6 +2,7 @@ package com.akademi.controller;
 
 import com.akademi.config.security.JwtTokenProvider;
 import com.akademi.dto.response.ApiResponse;
+import com.akademi.dto.response.UserSummaryDto;
 import com.akademi.enums.Role;
 import com.akademi.model.User;
 import com.akademi.service.UserService;
@@ -134,10 +135,12 @@ public class AuthController {
 
     // ── Admin: list all technician accounts (used for assignment dropdown) ──
     @GetMapping("/users/technicians")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<List<User>>> getTechnicians() {
-        List<User> technicians = userService.getUsersByRole(Role.TECHNICIAN);
-        return ResponseEntity.ok(ApiResponse.success("Technicians", technicians));
+    public ResponseEntity<ApiResponse<List<UserSummaryDto>>> getTechnicians() {
+        List<UserSummaryDto> technicians = userService.getUsersByRole(Role.TECHNICIAN)
+            .stream()
+            .map(u -> new UserSummaryDto(u.getId(), u.getName(), u.getEmail(), u.getRole()))
+            .toList();
+        return ResponseEntity.ok(new ApiResponse<>(true, "Technicians", technicians));
     }
 
     // ── Inner classes ────────────────────────────────────────────────────

@@ -22,14 +22,17 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     Optional<Booking> findByQrToken(String qrToken);
 
-    // Check for overlapping bookings on the same resource
+    List<Booking> findByUserIdAndStatus(Long userId, BookingStatus status);
+
     @Query("SELECT b FROM Booking b WHERE b.resource.id = :resourceId " +
-           "AND b.status NOT IN ('CANCELLED', 'NO_SHOW') " +
+           "AND b.status NOT IN (" +
+           "  com.akademi.enums.BookingStatus.CANCELLED, " +
+           "  com.akademi.enums.BookingStatus.REJECTED, " +
+           "  com.akademi.enums.BookingStatus.NO_SHOW" +
+           ") " +
            "AND b.startTime < :endTime AND b.endTime > :startTime")
     List<Booking> findOverlappingBookings(
             @Param("resourceId") Long resourceId,
             @Param("startTime") LocalDateTime startTime,
             @Param("endTime") LocalDateTime endTime);
-
-    List<Booking> findByUserIdAndStatus(Long userId, BookingStatus status);
 }

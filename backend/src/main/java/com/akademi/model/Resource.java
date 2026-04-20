@@ -1,6 +1,7 @@
 package com.akademi.model;
 
 import com.akademi.enums.ResourceStatus;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -45,6 +46,7 @@ public class Resource {
     @Column(name = "qr_code_url")
     private String qrCodeUrl;
 
+    @JsonIgnore
     @OneToMany(mappedBy = "resource", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Booking> bookings;
 

@@ -1,6 +1,7 @@
 package com.akademi.model;
 
 import com.akademi.enums.NotificationCategory;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -16,6 +17,10 @@ public class Notification {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // Fix: @JsonIgnore prevents Jackson from serializing the lazy-loaded User object.
+    // Without this, GET /notifications crashes with LazyInitializationException
+    // and the frontend receives null/empty data instead of the notification list.
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;

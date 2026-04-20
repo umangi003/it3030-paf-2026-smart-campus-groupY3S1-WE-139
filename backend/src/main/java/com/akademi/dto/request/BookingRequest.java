@@ -1,6 +1,7 @@
 package com.akademi.dto.request;
 
 import jakarta.validation.constraints.Future;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
@@ -21,4 +22,7 @@ public class BookingRequest {
     private LocalDateTime endTime;
 
     private String purpose;
+
+    @Min(value = 1, message = "Attendees must be at least 1")
+    private Integer attendees;
 }

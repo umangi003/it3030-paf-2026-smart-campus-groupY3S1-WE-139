@@ -19,7 +19,7 @@ export default function Modal({ isOpen, onClose, title, children, width = 480 })
         background: 'rgba(0,30,43,0.5)',
         zIndex: 9999,
         overflowY: 'auto',
-        padding: '84px 24px 24px',  // 60px navbar + 24px breathing room
+        padding: '84px 24px 24px',
       }}
     >
       <div style={{ display: 'flex', justifyContent: 'center', minHeight: '100%', alignItems: 'flex-start' }}>

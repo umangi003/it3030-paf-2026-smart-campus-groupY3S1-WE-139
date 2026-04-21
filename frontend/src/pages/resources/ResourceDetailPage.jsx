@@ -75,7 +75,7 @@ export default function ResourceDetailPage() {
 
   const canBook = BOOKABLE_STATUSES.includes(resource.status)
 
-  // Human-friendly reason why booking is blocked
+
   const bookingBlockedReason = {
     UNAVAILABLE: 'This resource is currently unavailable for booking.',
     MAINTENANCE: 'This resource is under maintenance and cannot be booked.',
@@ -84,7 +84,6 @@ export default function ResourceDetailPage() {
 
   return (
     <div style={{ maxWidth: 640 }}>
-      {/* Back */}
       <button onClick={() => navigate('/resources')} style={{
         background: 'none', border: 'none', color: 'var(--gray-400)',
         fontSize: 14, cursor: 'pointer', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 4
@@ -92,7 +91,6 @@ export default function ResourceDetailPage() {
 
       <div style={{ background: 'var(--white)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--gray-200)', overflow: 'hidden' }}>
 
-        {/* Resource Image */}
         {resource.imageUrl && !editing && (
           <img src={resource.imageUrl} alt={resource.name}
             style={{ width: '100%', height: 200, objectFit: 'cover' }}
@@ -100,7 +98,6 @@ export default function ResourceDetailPage() {
           />
         )}
 
-        {/* Header */}
         <div style={{ padding: '24px', borderBottom: '1px solid var(--gray-100)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
@@ -116,12 +113,10 @@ export default function ResourceDetailPage() {
           </div>
         </div>
 
-        {/* Content */}
         <div style={{ padding: 24 }}>
           {editing ? (
             <form onSubmit={handleUpdate} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
 
-              {/* Name + Location */}
               <div style={rowStyle}>
                 <div>
                   <label style={labelStyle}>Name *</label>
@@ -135,7 +130,6 @@ export default function ResourceDetailPage() {
                 </div>
               </div>
 
-              {/* Capacity + Status */}
               <div style={rowStyle}>
                 <div>
                   <label style={labelStyle}>Capacity</label>
@@ -151,7 +145,6 @@ export default function ResourceDetailPage() {
                 </div>
               </div>
 
-              {/* Opening + Closing Time */}
               <div style={rowStyle}>
                 <div>
                   <label style={labelStyle}>Opening Time</label>
@@ -167,7 +160,6 @@ export default function ResourceDetailPage() {
                 </div>
               </div>
 
-              {/* Image URL */}
               <div>
                 <label style={labelStyle}>Image URL</label>
                 <input style={inputStyle} type="url" value={form.imageUrl || ''} placeholder="https://..."
@@ -179,7 +171,6 @@ export default function ResourceDetailPage() {
                 )}
               </div>
 
-              {/* Description */}
               <div>
                 <label style={labelStyle}>Description</label>
                 <textarea style={{ ...inputStyle, height: 80, resize: 'vertical' }}
@@ -211,7 +202,6 @@ export default function ResourceDetailPage() {
                 </div>
               ))}
 
-              {/* Booking section */}
               <div style={{ marginTop: 8 }}>
                 {canBook ? (
                   <Button onClick={() => navigate(`/bookings/new?resourceId=${resource.id}`)}>

@@ -21,7 +21,7 @@ import AdminDashboard from './pages/admin/AdminDashboard'
 import SLADashboard from './pages/admin/SLADashboard'
 import StaffDashboard from './pages/staff/StaffDashboard'
 import TechnicianDashboard from './pages/technician/TechnicianDashboard'
-
+import ResourceAnalyticsPage from './pages/resources/ResourceAnalyticsPage'
 export default function App() {
   return (
     <AuthProvider>
@@ -59,14 +59,13 @@ export default function App() {
             <Route path="/resources" element={<ResourceListPage />} />
             <Route path="/bookings" element={<BookingListPage />} />
             <Route path="/bookings/new" element={<BookingFormPage />} />
-            {/* NOTE: /bookings/qr/:token is public above — not repeated here */}
             {/* QR display is protected — only the logged-in student sees their own QR */}
             <Route path="/bookings/qr-display/:id" element={<QRDisplayPage />} />
             <Route path="/incidents" element={<IncidentListPage />} />
             <Route path="/incidents/:id" element={<IncidentDetailPage />} />
             <Route path="/notifications" element={<NotificationsPage />} />
             <Route path="/notifications/preferences" element={<NotificationPreferencesPage />} />
-
+            <Route path="/resources/analytics" element={<ResourceAnalyticsPage />} />
             {/* Role dashboards */}
             <Route path="/staff" element={<StaffDashboard />} />
             <Route path="/technician" element={<TechnicianDashboard />} />

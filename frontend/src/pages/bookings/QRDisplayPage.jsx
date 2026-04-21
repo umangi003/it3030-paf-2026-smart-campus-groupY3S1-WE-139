@@ -15,12 +15,10 @@ export default function QRDisplayPage() {
   useEffect(() => {
     const generate = async () => {
       try {
-        // Generate the QR token from the backend
         const tokenRes = await bookingApi.generateQR(id)
         const qrToken = tokenRes.data.data
         setToken(qrToken)
 
-        // Also fetch booking details to show alongside the QR
         const bookingRes = await bookingApi.getById(id)
         setBooking(bookingRes.data.data)
       } catch (err) {

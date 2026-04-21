@@ -27,8 +27,7 @@ public class BookingController {
     private final BookingService bookingService;
     private final UserService userService;
 
-    // Fix 8: returns BookingResponse (not raw Booking entity)
-    // Fix 1: booking now starts as PENDING inside the service
+    // CREATE — submit a new booking request
     @PostMapping
     public ResponseEntity<ApiResponse<BookingResponse>> createBooking(
             @Valid @RequestBody BookingRequest request,
@@ -39,22 +38,30 @@ public class BookingController {
                 .body(ApiResponse.success("Booking submitted. Awaiting admin approval.", booking));
     }
 
-    // Fix 8: returns List<BookingResponse>
+    // READ — get logged-in user's own bookings
     @GetMapping("/my")
     public ResponseEntity<ApiResponse<List<BookingResponse>>> getMyBookings(
             @AuthenticationPrincipal UserDetails userDetails) {
         User user = userService.getUserByEmail(userDetails.getUsername());
-        return ResponseEntity.ok(ApiResponse.success(bookingService.getUserBookings(user.getId())));
+        return ResponseEntity.ok(ApiResponse.success(
+                bookingService.getUserBookings(user.getId())));
     }
 
-    // Fix 8: returns BookingResponse
+    // READ — get a single booking by ID
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<BookingResponse>> getBookingById(@PathVariable Long id) {
         return ResponseEntity.ok(ApiResponse.success(bookingService.getBookingById(id)));
     }
 
-    // Fix 7: cancel now enforces APPROVED-only rule inside the service
-    // Fix 8: returns BookingResponse
+    // READ — admin gets all bookings 
+    @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<List<BookingResponse>>> getAllBookings(
+            @RequestParam(required = false) BookingStatus status) {
+        return ResponseEntity.ok(ApiResponse.success(bookingService.getAllBookings(status)));
+    }
+
+    // UPDATE — user cancels their own APPROVED booking
     @PatchMapping("/{id}/cancel")
     public ResponseEntity<ApiResponse<BookingResponse>> cancelBooking(
             @PathVariable Long id,
@@ -64,6 +71,25 @@ public class BookingController {
                 bookingService.cancelBooking(id, user)));
     }
 
+    // UPDATE — admin approves a PENDING booking
+    @PatchMapping("/{id}/approve")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<BookingResponse>> approveBooking(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.success("Booking approved",
+                bookingService.approveBooking(id)));
+    }
+
+    // UPDATE — admin rejects a PENDING booking with a reason
+    @PatchMapping("/{id}/reject")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<BookingResponse>> rejectBooking(
+            @PathVariable Long id,
+            @RequestBody ApproveRejectRequest request) {
+        return ResponseEntity.ok(ApiResponse.success("Booking rejected",
+                bookingService.rejectBooking(id, request.getReason())));
+    }
+
+    // UPDATE — generate QR token for an approved booking
     @PostMapping("/{id}/qr")
     public ResponseEntity<ApiResponse<String>> generateQRToken(
             @PathVariable Long id,
@@ -73,30 +99,13 @@ public class BookingController {
         return ResponseEntity.ok(ApiResponse.success("QR token generated", token));
     }
 
-    // Fix 3: admin can now pass ?status=PENDING to filter bookings
-    // Fix 8: returns List<BookingResponse>
-    @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<List<BookingResponse>>> getAllBookings(
-            @RequestParam(required = false) BookingStatus status) {
-        return ResponseEntity.ok(ApiResponse.success(bookingService.getAllBookings(status)));
-    }
-
-    // Fix 2: brand new endpoint — admin approves a PENDING booking
-    @PatchMapping("/{id}/approve")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<BookingResponse>> approveBooking(@PathVariable Long id) {
-        return ResponseEntity.ok(ApiResponse.success("Booking approved",
-                bookingService.approveBooking(id)));
-    }
-
-    // Fix 2: brand new endpoint — admin rejects a PENDING booking with a reason
-    @PatchMapping("/{id}/reject")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<BookingResponse>> rejectBooking(
+    // DELETE — removes a PENDING booking the user submitted by mistake
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<Void>> deleteBooking(
             @PathVariable Long id,
-            @RequestBody ApproveRejectRequest request) {
-        return ResponseEntity.ok(ApiResponse.success("Booking rejected",
-                bookingService.rejectBooking(id, request.getReason())));
+            @AuthenticationPrincipal UserDetails userDetails) {
+        User user = userService.getUserByEmail(userDetails.getUsername());
+        bookingService.deletePendingBooking(id, user);
+        return ResponseEntity.ok(ApiResponse.success("Booking deleted", null));
     }
 }

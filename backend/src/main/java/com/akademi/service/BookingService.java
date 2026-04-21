@@ -4,7 +4,7 @@ import com.akademi.dto.request.BookingRequest;
 import com.akademi.dto.response.BookingResponse;
 import com.akademi.enums.BookingStatus;
 import com.akademi.enums.NotificationCategory;
-import com.akademi.enums.ResourceStatus;
+import com.akademi.enums.Role;
 import com.akademi.exception.ConflictException;
 import com.akademi.exception.ResourceNotFoundException;
 import com.akademi.model.Booking;
@@ -14,6 +14,7 @@ import com.akademi.model.User;
 import com.akademi.repository.BookingRepository;
 import com.akademi.repository.QRCheckInRepository;
 import com.akademi.repository.ResourceRepository;
+import com.akademi.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -31,10 +32,21 @@ public class BookingService {
     private final ResourceRepository resourceRepository;
     private final QRCheckInRepository qrCheckInRepository;
     private final NotificationService notificationService;
+    private final UserRepository userRepository;
 
     @Value("${akademi.qr.token-expiry-minutes:15}")
     private int qrTokenExpiryMinutes;
 
+    // Sends a notification to every admin user
+    private void notifyAllAdmins(String title, String message, Long referenceId) {
+        List<User> admins = userRepository.findByRole(Role.ADMIN);
+        for (User admin : admins) {
+            notificationService.sendNotification(
+                    admin, title, message,
+                    NotificationCategory.GENERAL, referenceId, "BOOKING"
+            );
+        }
+    }
 
     public BookingResponse toResponse(Booking b) {
         return BookingResponse.builder()
@@ -65,10 +77,25 @@ public class BookingService {
         Resource resource = resourceRepository.findById(request.getResourceId())
                 .orElseThrow(() -> new ResourceNotFoundException("Resource", request.getResourceId()));
 
+        // Validate- start time must be in the future
+        if (!request.getStartTime().isAfter(LocalDateTime.now())) {
+            throw new IllegalArgumentException("Start time must be in the future");
+        }
+
+        // Validate- end time must be after start time
+        if (!request.getEndTime().isAfter(request.getStartTime())) {
+            throw new IllegalArgumentException("End time must be after start time");
+        }
+
         List<Booking> overlapping = bookingRepository.findOverlappingBookings(
-                request.getResourceId(), request.getStartTime(), request.getEndTime());
+                request.getResourceId(),
+                request.getStartTime(),
+                request.getEndTime()
+        );
+
         if (!overlapping.isEmpty()) {
-            throw new ConflictException("Resource is already booked for the selected time slot");
+            throw new ConflictException(
+                "This time slot is already taken. Please choose a different time.");
         }
 
         Booking booking = Booking.builder()
@@ -76,13 +103,14 @@ public class BookingService {
                 .resource(resource)
                 .startTime(request.getStartTime())
                 .endTime(request.getEndTime())
-                .status(BookingStatus.PENDING)        // Fix 1: was CONFIRMED
+                .status(BookingStatus.PENDING)
                 .purpose(request.getPurpose())
-                .attendees(request.getAttendees())    // Fix 4
+                .attendees(request.getAttendees())
                 .build();
 
         Booking saved = bookingRepository.save(booking);
 
+        // Notify the user
         notificationService.sendNotification(
                 user,
                 "Booking Submitted",
@@ -92,24 +120,29 @@ public class BookingService {
                 "BOOKING"
         );
 
+        // Notify admin
+        notifyAllAdmins(
+                "New Booking Request",
+                user.getName() + " requested " + resource.getName() +
+                " from " + request.getStartTime() + " to " + request.getEndTime(),
+                saved.getId()
+        );
+
         return toResponse(saved);
     }
 
     public BookingResponse approveBooking(Long bookingId) {
         Booking booking = getBookingEntityById(bookingId);
+
         if (booking.getStatus() != BookingStatus.PENDING) {
             throw new IllegalStateException(
                 "Only PENDING bookings can be approved. Current status: " + booking.getStatus());
         }
+
         booking.setStatus(BookingStatus.APPROVED);
-
-        // NOTE: We do NOT change the resource status here.
-        // The scheduler (BookingSchedulerService) will mark it UNAVAILABLE
-        // only when the booking's startTime is reached, and AVAILABLE again
-        // after the booking's endTime — so availability reflects actual usage time.
-
         Booking saved = bookingRepository.save(booking);
 
+        // Notify the user
         notificationService.sendNotification(
                 booking.getUser(),
                 "Booking Approved",
@@ -120,19 +153,30 @@ public class BookingService {
                 "BOOKING"
         );
 
+        // Confirmation trail for admin
+        notifyAllAdmins(
+                "Booking Approved",
+                "Booking #" + saved.getId() + " for " + booking.getResource().getName() +
+                " by " + booking.getUser().getName() + " was approved.",
+                saved.getId()
+        );
+
         return toResponse(saved);
     }
 
     public BookingResponse rejectBooking(Long bookingId, String reason) {
         Booking booking = getBookingEntityById(bookingId);
+
         if (booking.getStatus() != BookingStatus.PENDING) {
             throw new IllegalStateException(
                 "Only PENDING bookings can be rejected. Current status: " + booking.getStatus());
         }
+
         booking.setStatus(BookingStatus.REJECTED);
         booking.setRejectionReason(reason);
         Booking saved = bookingRepository.save(booking);
 
+        // Notify the user
         notificationService.sendNotification(
                 booking.getUser(),
                 "Booking Rejected",
@@ -143,27 +187,32 @@ public class BookingService {
                 "BOOKING"
         );
 
+        // Confirmation trail for admin
+        notifyAllAdmins(
+                "Booking Rejected",
+                "Booking #" + saved.getId() + " for " + booking.getResource().getName() +
+                " by " + booking.getUser().getName() + " was rejected.",
+                saved.getId()
+        );
+
         return toResponse(saved);
     }
 
     public BookingResponse cancelBooking(Long id, User user) {
         Booking booking = getBookingEntityById(id);
+
         if (!booking.getUser().getId().equals(user.getId())) {
             throw new RuntimeException("You can only cancel your own bookings");
         }
-        // Fix 7: only APPROVED bookings can be cancelled
+
         if (booking.getStatus() != BookingStatus.APPROVED) {
             throw new IllegalStateException("Only approved bookings can be cancelled");
         }
+
         booking.setStatus(BookingStatus.CANCELLED);
-
-        // Restore resource to AVAILABLE so it reappears in the booking form
-        Resource resource = booking.getResource();
-        resource.setStatus(ResourceStatus.AVAILABLE);
-        resourceRepository.save(resource);
-
         Booking saved = bookingRepository.save(booking);
 
+        // Notify the user
         notificationService.sendNotification(
                 user,
                 "Booking Cancelled",
@@ -173,7 +222,31 @@ public class BookingService {
                 "BOOKING"
         );
 
+        // Notify admin
+        notifyAllAdmins(
+                "Booking Cancelled",
+                booking.getUser().getName() + " cancelled their booking for " +
+                booking.getResource().getName(),
+                saved.getId()
+        );
+
         return toResponse(saved);
+    }
+
+    // DELETE — removes a PENDING booking 
+    public void deletePendingBooking(Long id, User user) {
+        Booking booking = getBookingEntityById(id);
+
+        if (!booking.getUser().getId().equals(user.getId())) {
+            throw new RuntimeException("You can only delete your own bookings");
+        }
+
+        if (booking.getStatus() != BookingStatus.PENDING) {
+            throw new IllegalStateException(
+                "Only PENDING bookings can be deleted. Use cancel for approved bookings.");
+        }
+
+        bookingRepository.delete(booking);
     }
 
     public List<BookingResponse> getAllBookings(BookingStatus statusFilter) {
@@ -202,12 +275,15 @@ public class BookingService {
 
     public String generateQRToken(Long bookingId, User user) {
         Booking booking = getBookingEntityById(bookingId);
+
         if (!booking.getUser().getId().equals(user.getId())) {
             throw new RuntimeException("You can only generate QR for your own bookings");
         }
+
         if (booking.getStatus() != BookingStatus.APPROVED) {
             throw new IllegalStateException("QR code can only be generated for approved bookings");
         }
+
         String token = UUID.randomUUID().toString();
         booking.setQrToken(token);
         booking.setQrTokenExpiry(LocalDateTime.now().plusMinutes(qrTokenExpiryMinutes));

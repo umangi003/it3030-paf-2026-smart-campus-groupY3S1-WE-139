@@ -25,7 +25,7 @@ public class BookingSchedulerService {
     private final ResourceRepository resourceRepository;
     private final NotificationService notificationService;
 
-    // Runs every minute to check for expired bookings
+    //expired bookings
     @Scheduled(fixedRate = 60000)
     @Transactional
     public void completeExpiredBookings() {
@@ -33,16 +33,13 @@ public class BookingSchedulerService {
         List<Booking> expired = bookingRepository.findExpiredApprovedBookings(LocalDateTime.now());
 
         for (Booking booking : expired) {
-            // Mark booking as COMPLETED
             booking.setStatus(BookingStatus.COMPLETED);
             bookingRepository.save(booking);
 
-            // Free up the resource so others can book it
             Resource resource = booking.getResource();
             resource.setStatus(ResourceStatus.AVAILABLE);
             resourceRepository.save(resource);
 
-            // Notify the user
             notificationService.sendNotification(
                     booking.getUser(),
                     "Booking Completed",

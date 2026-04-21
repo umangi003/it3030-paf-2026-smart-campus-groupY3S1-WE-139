@@ -14,12 +14,17 @@ export default function Navbar() {
         .then(r => setUnread(r.data.data || 0))
         .catch(() => {})
     }
-    fetchCount()                                
-    const interval = setInterval(fetchCount, 30000) 
-    return () => clearInterval(interval)          
+    fetchCount()
+    const interval = setInterval(fetchCount, 30000)
+
+    window.addEventListener('notifications-read', fetchCount)
+
+    return () => {
+      clearInterval(interval)
+      window.removeEventListener('notifications-read', fetchCount)
+    }
   }, [])
 
-  // On logout → go to public landing page (not /login)
   const handleLogout = () => {
     logout()
     navigate('/')

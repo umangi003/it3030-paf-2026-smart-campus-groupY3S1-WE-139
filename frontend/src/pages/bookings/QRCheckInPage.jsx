@@ -3,9 +3,6 @@ import { useParams } from 'react-router-dom'
 import { qrApi } from '../../api/qrApi'
 import { formatDateTime } from '../../utils/helpers'
 
-// Fix 5: This page calls the backend which now actually saves checkedInAt to the DB.
-// Fix 6: This page is now on a PUBLIC route in App.jsx — no login needed.
-//        A guard or receptionist can scan a student's QR without an account.
 
 export default function QRCheckInPage() {
   const { token } = useParams()
@@ -13,7 +10,6 @@ export default function QRCheckInPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Fix 6: qrApi now uses plain fetch() (not authenticated axios)
     qrApi.verify(token)
       .then(r => setResult(r.data.data))
       .catch(() => setResult({ valid: false, message: 'Could not connect to server. Please try again.' }))

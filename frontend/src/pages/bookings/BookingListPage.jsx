@@ -65,7 +65,7 @@ export default function BookingListPage() {
     }
   }
 
-  //admin reject — opens modal first to get reason
+  //admin reject
   const openRejectModal = (id) => {
     setRejectReason('')
     setRejectModal({ open: true, bookingId: id })
@@ -94,6 +94,17 @@ export default function BookingListPage() {
   const handleGenerateQR = (id) => {
     navigate(`/bookings/qr-display/${id}`)
   }
+
+  const handleDelete = async (id) => {
+  if (!confirm('Permanently delete this booking request?')) return
+  try {
+    await bookingApi.delete(id)
+    toast.success('Booking deleted')
+    fetchBookings()
+  } catch (err) {
+    toast.error(getErrorMessage(err))
+  }
+}
 
   const inputStyle = {
     width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-md)',
@@ -281,6 +292,16 @@ export default function BookingListPage() {
                   >
                     Cancel
                   </Button>
+                )}
+                {/* Delete — only for PENDING bookings (submitted by mistake) */}
+                {!isAdmin() && b.status === 'PENDING' && (
+                  <Button
+                    size="sm"
+                    variant="danger"
+                    onClick={() => handleDelete(b.id)}
+                  >
+                    Delete
+                 </Button>
                 )}
               </div>
             </div>

@@ -30,12 +30,14 @@ export default function NotificationsPage() {
   const markRead = async (id) => {
     await notificationApi.markAsRead(id)
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n))
+    window.dispatchEvent(new CustomEvent('notifications-read'))
   }
 
   const markAllRead = async () => {
     await notificationApi.markAllAsRead()
     setNotifications(prev => prev.map(n => ({ ...n, read: true })))
     toast.success('All marked as read')
+    window.dispatchEvent(new CustomEvent('notifications-read'))
   }
 
   const unreadCount = notifications.filter(n => !n.read).length

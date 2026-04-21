@@ -55,12 +55,7 @@ public class QRCodeService {
         }
     }
 
-    /**
-     * Generates QR code as raw byte array (for file storage or download).
-     *
-     * @param token the booking QR token
-     * @return PNG image as byte array
-     */
+    
     public byte[] generateQRCodeBytes(String token) {
         try {
             String qrContent = frontendUrl + "/qr/verify/" + token;

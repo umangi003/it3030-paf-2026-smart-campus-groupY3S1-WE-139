@@ -80,8 +80,13 @@ export default function BookingFormPage() {
     marginBottom: 5,
   }
 
+  
+  const nowMin = new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000)
+    .toISOString()
+    .slice(0, 16)
+
   return (
-    <div style={{ maxWidth: 520 }}>
+    <div style={{ maxWidth: 520, margin: '0 auto' }}>
       <button
         onClick={() => navigate('/bookings')}
         style={{
@@ -136,6 +141,7 @@ export default function BookingFormPage() {
               <input
                 style={inputStyle}
                 type="datetime-local"
+                min={nowMin}
                 value={form.startTime}
                 onChange={e => setForm(p => ({ ...p, startTime: e.target.value }))}
                 required
@@ -146,6 +152,7 @@ export default function BookingFormPage() {
               <input
                 style={inputStyle}
                 type="datetime-local"
+                min={nowMin}
                 value={form.endTime}
                 onChange={e => setForm(p => ({ ...p, endTime: e.target.value }))}
                 required

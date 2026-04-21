@@ -9,9 +9,14 @@ export default function Navbar() {
   const [unread, setUnread] = useState(0)
 
   useEffect(() => {
-    notificationApi.getUnreadCount()
-      .then(r => setUnread(r.data.data || 0))
-      .catch(() => {})
+    const fetchCount = () => {
+      notificationApi.getUnreadCount()
+        .then(r => setUnread(r.data.data || 0))
+        .catch(() => {})
+    }
+    fetchCount()                                
+    const interval = setInterval(fetchCount, 30000) 
+    return () => clearInterval(interval)          
   }, [])
 
   // On logout → go to public landing page (not /login)

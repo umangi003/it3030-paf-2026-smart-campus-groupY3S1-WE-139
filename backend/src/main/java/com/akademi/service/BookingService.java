@@ -178,13 +178,13 @@ public class BookingService {
 
     public List<BookingResponse> getAllBookings(BookingStatus statusFilter) {
         List<Booking> bookings = (statusFilter != null)
-                ? bookingRepository.findByStatus(statusFilter)
-                : bookingRepository.findAll();
+                ? bookingRepository.findByStatusOrderByCreatedAtDesc(statusFilter)
+                : bookingRepository.findAllByOrderByCreatedAtDesc();
         return toResponseList(bookings);
     }
 
     public List<BookingResponse> getUserBookings(Long userId) {
-        return toResponseList(bookingRepository.findByUserId(userId));
+        return toResponseList(bookingRepository.findByUserIdOrderByCreatedAtDesc(userId));
     }
 
     public BookingResponse getBookingById(Long id) {

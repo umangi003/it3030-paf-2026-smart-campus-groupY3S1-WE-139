@@ -8,7 +8,7 @@ import Modal from '../../components/common/Modal'
 import toast from 'react-hot-toast'
 import { formatDateTime, getErrorMessage } from '../../utils/helpers'
 
-// Fix 3: status filter options for admin
+//status filter options for admin
 const STATUS_FILTERS = ['ALL', 'PENDING', 'APPROVED', 'REJECTED', 'CANCELLED', 'COMPLETED']
 
 export default function BookingListPage() {
@@ -21,14 +21,13 @@ export default function BookingListPage() {
   const [rejectReason, setRejectReason] = useState('')           // Fix 2
   const [actionLoading, setActionLoading] = useState(false)
 
-  // Fix 3: re-fetch whenever the status filter changes
+  // re-fetch whenever the status filter changes
   useEffect(() => { fetchBookings() }, [statusFilter])
 
   const fetchBookings = async () => {
     setLoading(true)
     try {
       const filter = statusFilter === 'ALL' ? null : statusFilter
-      // Fix 3: pass status filter to backend
       const res = isAdmin()
         ? await bookingApi.getAll(filter)
         : await bookingApi.getMy()
@@ -40,7 +39,7 @@ export default function BookingListPage() {
     }
   }
 
-  // Fix 7: cancel only works on APPROVED — the backend also enforces this
+  //cancel only works on APPROVED 
   const handleCancel = async (id) => {
     if (!confirm('Cancel this booking?')) return
     try {
@@ -52,21 +51,21 @@ export default function BookingListPage() {
     }
   }
 
-  // Fix 2: admin approve
+  //admin approve
   const handleApprove = async (id) => {
     setActionLoading(true)
     try {
       await bookingApi.approve(id)
       toast.success('Booking approved — user has been notified')
-      fetchBookings()
     } catch (err) {
       toast.error(getErrorMessage(err))
     } finally {
       setActionLoading(false)
+      fetchBookings()
     }
   }
 
-  // Fix 2: admin reject — opens modal first to get reason
+  //admin reject — opens modal first to get reason
   const openRejectModal = (id) => {
     setRejectReason('')
     setRejectModal({ open: true, bookingId: id })
@@ -82,15 +81,16 @@ export default function BookingListPage() {
       await bookingApi.reject(rejectModal.bookingId, rejectReason)
       toast.success('Booking rejected — user has been notified')
       setRejectModal({ open: false, bookingId: null })
-      fetchBookings()
+
     } catch (err) {
       toast.error(getErrorMessage(err))
     } finally {
       setActionLoading(false)
+      fetchBookings()
     }
   }
 
-  // Navigate to the QR display page — the token is generated there
+
   const handleGenerateQR = (id) => {
     navigate(`/bookings/qr-display/${id}`)
   }
@@ -104,7 +104,7 @@ export default function BookingListPage() {
   return (
     <div>
 
-      {/* ── Header ─────────────────────────────────────────────────────────── */}
+      {/*Header*/}
       <div style={{
         display: 'flex', justifyContent: 'space-between',
         alignItems: 'flex-start', marginBottom: 24,
@@ -123,7 +123,7 @@ export default function BookingListPage() {
         )}
       </div>
 
-      {/* ── Fix 3: Admin status filter tabs ────────────────────────────────── */}
+      {/*Admin status filter tabs */}
       {isAdmin() && (
         <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
           {STATUS_FILTERS.map(s => (
@@ -144,7 +144,7 @@ export default function BookingListPage() {
         </div>
       )}
 
-      {/* ── Booking list ────────────────────────────────────────────────────── */}
+      {/*Booking list*/}
       {loading ? (
         <p style={{ color: 'var(--gray-400)', fontSize: 14 }}>Loading...</p>
       ) : bookings.length === 0 ? (
@@ -174,7 +174,7 @@ export default function BookingListPage() {
                 justifyContent: 'space-between', gap: 16,
               }}
             >
-              {/* ── Info section ──────────────────────────────────────────── */}
+              {/*Info section*/}
               <div style={{ flex: 1, minWidth: 0 }}>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
@@ -196,7 +196,7 @@ export default function BookingListPage() {
                   <span>{formatDateTime(b.endTime)}</span>
                 </div>
 
-                {/* Fix 4: show attendees if provided */}
+                {/* show attendees if provided */}
                 {b.attendees && (
                   <p style={{ fontSize: 12, color: 'var(--gray-400)', marginTop: 4 }}>
                     👥 {b.attendees} attendee{b.attendees !== 1 ? 's' : ''}
@@ -209,7 +209,7 @@ export default function BookingListPage() {
                   </p>
                 )}
 
-                {/* Fix 2: show rejection reason on rejected bookings */}
+                {/* show rejection reason on rejected bookings */}
                 {b.status === 'REJECTED' && b.rejectionReason && (
                   <p style={{
                     fontSize: 12, color: '#dc2626', marginTop: 6,
@@ -219,7 +219,7 @@ export default function BookingListPage() {
                   </p>
                 )}
 
-                {/* Fix 1: tell user their booking is pending */}
+                {/* tell user their booking is pending */}
                 {b.status === 'PENDING' && !isAdmin() && (
                   <p style={{ fontSize: 12, color: '#b45309', marginTop: 6 }}>
                     Awaiting admin approval
@@ -234,13 +234,13 @@ export default function BookingListPage() {
                 )}
               </div>
 
-              {/* ── Action buttons ────────────────────────────────────────── */}
+              {/* Action buttons  */}
               <div style={{
                 display: 'flex', gap: 8, flexShrink: 0,
                 flexWrap: 'wrap', justifyContent: 'flex-end',
               }}>
 
-                {/* Fix 2: admin sees Approve/Reject only on PENDING bookings */}
+                {/* admin sees Approve/Reject only on PENDING bookings */}
                 {isAdmin() && b.status === 'PENDING' && (
                   <>
                     <Button
@@ -261,7 +261,7 @@ export default function BookingListPage() {
                   </>
                 )}
 
-                {/* Fix 7: QR only for APPROVED (not CONFIRMED) */}
+                {/* QR only for APPROVED (not CONFIRMED) */}
                 {!isAdmin() && b.status === 'APPROVED' && (
                   <Button
                     size="sm"
@@ -272,7 +272,7 @@ export default function BookingListPage() {
                   </Button>
                 )}
 
-                {/* Fix 7: Cancel only for APPROVED */}
+                {/* Cancel only for APPROVED */}
                 {!isAdmin() && b.status === 'APPROVED' && (
                   <Button
                     size="sm"
@@ -288,7 +288,7 @@ export default function BookingListPage() {
         </div>
       )}
 
-      {/* ── Fix 2: Reject reason modal ──────────────────────────────────────── */}
+      {/* Reject reason modal */}
       <Modal
         isOpen={rejectModal.open}
         onClose={() => setRejectModal({ open: false, bookingId: null })}

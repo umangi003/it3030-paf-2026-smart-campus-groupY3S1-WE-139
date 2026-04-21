@@ -1,5 +1,6 @@
 import { Outlet, useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import bgPattern from '../assets/image4.jpeg'
 
 export default function LandingLayout() {
   const { user, logout, isAdmin, isStaff } = useAuth()
@@ -87,10 +88,10 @@ export default function LandingLayout() {
 
       {/* ── NAV ── */}
       <header style={{
-        height: 64, background: '#0a1f0a',
+        height: 64, background: '#082226',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '0 48px', flexShrink: 0, position: 'sticky', top: 0, zIndex: 100,
-        borderBottom: '1px solid rgba(0,237,100,0.09)',
+        borderBottom: '1px solid rgba(18, 58, 74, 0.09)',
         boxShadow: '0 1px 24px rgba(0,0,0,0.35)'
       }}>
         <Link to="/" style={{ textDecoration: 'none' }}>
@@ -130,30 +131,21 @@ export default function LandingLayout() {
 
       {/* ── HERO ── */}
       <div style={{
-        background: '#0a1f0a',
+        backgroundImage: `url(${bgPattern})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
         padding: '80px 48px 88px',
         borderBottom: '1px solid rgba(0,237,100,0.07)',
         position: 'relative', overflow: 'hidden',
         textAlign: 'center',
       }}>
-        {/* Mesh glows */}
-        <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
-          <div style={{
-            position: 'absolute', top: '-80px', left: '50%', transform: 'translateX(-50%)',
-            width: 700, height: 400,
-            background: 'radial-gradient(ellipse, rgba(0,237,100,0.13) 0%, transparent 70%)',
-          }} />
-          <div style={{
-            position: 'absolute', bottom: '-40px', left: '10%',
-            width: 300, height: 300,
-            background: 'radial-gradient(circle, rgba(0,237,100,0.05) 0%, transparent 70%)',
-          }} />
-          <div style={{
-            position: 'absolute', bottom: 0, right: '8%',
-            width: 250, height: 250,
-            background: 'radial-gradient(circle, rgba(0,180,80,0.06) 0%, transparent 70%)',
-          }} />
-        </div>
+        {/* Dark overlay for better text contrast */}
+        <div style={{
+          position: 'absolute', inset: 0,
+          background: 'rgba(0,0,0,0.45)',
+          pointerEvents: 'none',
+        }} />
 
         <div style={{ maxWidth: 680, margin: '0 auto', position: 'relative' }}>
 
@@ -163,13 +155,12 @@ export default function LandingLayout() {
             fontSize: 56, fontWeight: 800, color: '#fff',
             letterSpacing: '-2.5px', lineHeight: 1.05,
             marginBottom: 20,
+            textShadow: '0 2px 12px rgba(0,0,0,0.8)',
           }}>
             Akademi<br />
             <span style={{
-              color: 'transparent',
-              backgroundImage: 'linear-gradient(90deg, #00ed64 0%, #00c853 100%)',
-              WebkitBackgroundClip: 'text',
-              backgroundClip: 'text',
+              color: '#fff',
+              textShadow: '0 2px 12px rgba(0,0,0,0.8)',
             }}>All in one place.</span>
           </h1>
 
@@ -181,12 +172,13 @@ export default function LandingLayout() {
 
           {/* Subtitle */}
           <p style={{
-            fontSize: 16, color: 'rgba(255,255,255,0.38)',
+            fontSize: 16, color: 'rgba(255,255,255,0.85)',
             lineHeight: 1.8, maxWidth: 440, margin: '0 auto',
             fontWeight: 400,
+            textShadow: '0 1px 6px rgba(0,0,0,0.7)',
           }}>
             Browse lecture halls, labs &amp; meeting rooms.
-            {!user && <> <Link to="/login" style={{ color: 'rgba(0,237,100,0.8)', fontWeight: 500, textDecoration: 'none' }}>Log in</Link> to book or report an incident.</>}
+            {!user && <> <Link to="/login" style={{ color: '#00ed64', fontWeight: 500, textDecoration: 'none' }}>Log in</Link> to book or report an incident.</>}
           </p>
 
           {/* CTAs */}
@@ -217,14 +209,14 @@ export default function LandingLayout() {
               { num: '1-click', label: 'Booking' },
             ].map(({ num, label }) => (
               <div key={label} style={{
-                background: 'rgba(255,255,255,0.04)',
-                border: '1px solid rgba(255,255,255,0.08)',
+                background: 'rgba(0,0,0,0.35)',
+                border: '1px solid rgba(255,255,255,0.15)',
                 borderRadius: '100px',
                 padding: '7px 18px',
                 display: 'flex', alignItems: 'center', gap: 8,
               }}>
                 <span style={{ fontSize: 13, fontWeight: 700, color: '#00ed64' }}>{num}</span>
-                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', fontWeight: 400 }}>{label}</span>
+                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)', fontWeight: 400 }}>{label}</span>
               </div>
             ))}
           </div>

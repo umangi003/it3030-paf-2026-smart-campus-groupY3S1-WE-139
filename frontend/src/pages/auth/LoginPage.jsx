@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext'
 import api from '../../api/axiosInstance'
 import toast from 'react-hot-toast'
 import { getErrorMessage } from '../../utils/helpers'
+import bgPattern from '../../assets/image2.jpeg'
 
 export default function LoginPage() {
   const { login, getHomePath } = useAuth()
@@ -23,8 +24,6 @@ export default function LoginPage() {
         const res = await api.post('/auth/login', { email: form.email, password: form.password })
         const { token, refreshToken, ...userData } = res.data.data
         login(userData, token, refreshToken)
-        // Use getHomePath from context — single source of truth for redirects
-        // We need the path based on the freshly logged-in userData, not the stale context
         const path = getPathForRole(userData.role)
         navigate(path, { replace: true })
       } else {
@@ -70,16 +69,29 @@ export default function LoginPage() {
 
   return (
     <div style={{
-      minHeight: '100vh', background: 'var(--green-deepest)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24
+      minHeight: '100vh',
+      backgroundImage: `url(${bgPattern})`,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundRepeat: 'no-repeat',
+      backgroundAttachment: 'fixed',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
+      position: 'relative',
     }}>
-      <div style={{ width: '100%', maxWidth: 420 }}>
+      {/* Dark overlay for contrast */}
+      <div style={{
+        position: 'absolute', inset: 0,
+        background: 'rgba(0,0,0,0.55)',
+        pointerEvents: 'none',
+      }} />
+
+      <div style={{ width: '100%', maxWidth: 420, position: 'relative' }}>
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: 40 }}>
           <h1 style={{ fontSize: 32, fontWeight: 600, color: 'var(--white)', letterSpacing: '-1px' }}>
             Akade<span style={{ color: 'var(--green-bright)' }}>mi</span>
           </h1>
-          <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14, marginTop: 6 }}>
+          <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14, marginTop: 6 }}>
             Smart Campus Platform
           </p>
         </div>
@@ -108,18 +120,15 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {tab === 'register' && (
               <>
-                {/* Role selector — only STUDENT and STAFF can self-register */}
                 <div>
                   <label style={{ fontSize: 13, fontWeight: 500, color: 'var(--gray-600)', display: 'block', marginBottom: 8 }}>
                     I am a...
                   </label>
                   <div style={{ display: 'flex', gap: 10 }}>
                     <button type="button" style={roleBtn('STUDENT')} onClick={() => setRole('STUDENT')}>
-                      <span style={{ fontSize: 20 }}>🎓</span>
                       Student
                     </button>
                     <button type="button" style={roleBtn('STAFF')} onClick={() => setRole('STAFF')}>
-                      <span style={{ fontSize: 20 }}>🧑‍💼</span>
                       Staff Member
                     </button>
                   </div>

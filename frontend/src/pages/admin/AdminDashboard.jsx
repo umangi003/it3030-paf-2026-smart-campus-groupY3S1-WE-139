@@ -27,7 +27,7 @@ export default function AdminDashboard() {
   const [incidents, setIncidents] = useState([])
   const [technicians, setTechnicians] = useState([])
   const [loading, setLoading] = useState(true)
-  const [assigning, setAssigning] = useState(null) // incident id being assigned
+  const [assigning, setAssigning] = useState(null)
 
   useEffect(() => {
     Promise.all([

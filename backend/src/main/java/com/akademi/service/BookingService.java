@@ -103,10 +103,10 @@ public class BookingService {
         }
         booking.setStatus(BookingStatus.APPROVED);
 
-        // Mark resource as UNAVAILABLE so it no longer appears in the available list
-        Resource resource = booking.getResource();
-        resource.setStatus(ResourceStatus.UNAVAILABLE);
-        resourceRepository.save(resource);
+        // NOTE: We do NOT change the resource status here.
+        // The scheduler (BookingSchedulerService) will mark it UNAVAILABLE
+        // only when the booking's startTime is reached, and AVAILABLE again
+        // after the booking's endTime — so availability reflects actual usage time.
 
         Booking saved = bookingRepository.save(booking);
 

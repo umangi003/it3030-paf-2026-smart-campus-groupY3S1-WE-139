@@ -56,4 +56,22 @@ public class BookingSchedulerService {
                     booking.getId(), resource.getName());
         }
     }
-}
+
+    // Runs every minute to mark resources UNAVAILABLE when their booking time starts
+    @Scheduled(fixedRate = 60000)
+    @Transactional
+    public void lockResourcesForActiveBookings() {
+        log.info("Checking for bookings that have started...");
+        LocalDateTime now = LocalDateTime.now();
+        List<Booking> active = bookingRepository.findActiveApprovedBookings(now);
+
+        for (Booking booking : active) {
+            Resource resource = booking.getResource();
+            if (resource.getStatus() != ResourceStatus.UNAVAILABLE) {
+                resource.setStatus(ResourceStatus.UNAVAILABLE);
+                resourceRepository.save(resource);
+                log.info("Resource '{}' set to UNAVAILABLE (booking #{} in progress)",
+                        resource.getName(), booking.getId());
+            }
+        }
+    }}

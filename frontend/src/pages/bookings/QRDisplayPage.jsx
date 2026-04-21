@@ -147,6 +147,29 @@ export default function QRDisplayPage() {
         }}>
           ⏱ This QR code expires in 15 minutes. Do not share it.
         </p>
+
+        {/* QR link — visible text so the guard/user can also use it manually */}
+        {checkInUrl && (
+          <div style={{
+            marginTop: 16,
+            padding: '10px 14px',
+            background: '#f3f4f6',
+            borderRadius: 6,
+            textAlign: 'left',
+          }}>
+            <p style={{ fontSize: 11, color: '#9ca3af', marginBottom: 4, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              Check-in URL
+            </p>
+            <a
+              href={checkInUrl}
+              style={{ fontSize: 12, color: 'var(--green-mid)', wordBreak: 'break-all' }}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {checkInUrl}
+            </a>
+          </div>
+        )}
       </div>
     </div>
   )

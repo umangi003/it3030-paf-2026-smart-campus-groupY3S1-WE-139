@@ -71,4 +71,8 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     @Query("SELECT b FROM Booking b WHERE b.status = com.akademi.enums.BookingStatus.APPROVED AND b.endTime < :now")
     List<Booking> findExpiredApprovedBookings(@Param("now") LocalDateTime now);
+
+    @Query("SELECT b FROM Booking b WHERE b.status = com.akademi.enums.BookingStatus.APPROVED " +
+           "AND b.startTime <= :now AND b.endTime > :now")
+    List<Booking> findActiveApprovedBookings(@Param("now") LocalDateTime now);
 }

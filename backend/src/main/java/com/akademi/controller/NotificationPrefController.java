@@ -2,7 +2,7 @@ package com.akademi.controller;
 
 import com.akademi.dto.request.NotificationPrefRequest;
 import com.akademi.dto.response.ApiResponse;
-import com.akademi.model.NotificationPreference;
+import com.akademi.dto.response.NotificationPrefResponse;
 import com.akademi.model.User;
 import com.akademi.service.NotificationPrefService;
 import com.akademi.service.UserService;
@@ -21,7 +21,7 @@ public class NotificationPrefController {
     private final UserService userService;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<NotificationPreference>> getPreferences(
+    public ResponseEntity<ApiResponse<NotificationPrefResponse>> getPreferences(
             @AuthenticationPrincipal UserDetails userDetails) {
         User user = userService.getUserByEmail(userDetails.getUsername());
         return ResponseEntity.ok(ApiResponse.success(
@@ -29,7 +29,7 @@ public class NotificationPrefController {
     }
 
     @PutMapping
-    public ResponseEntity<ApiResponse<NotificationPreference>> updatePreferences(
+    public ResponseEntity<ApiResponse<NotificationPrefResponse>> updatePreferences(
             @RequestBody NotificationPrefRequest request,
             @AuthenticationPrincipal UserDetails userDetails) {
         User user = userService.getUserByEmail(userDetails.getUsername());

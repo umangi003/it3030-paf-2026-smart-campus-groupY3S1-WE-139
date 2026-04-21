@@ -5,7 +5,6 @@ import com.akademi.model.Notification;
 import com.akademi.model.User;
 import com.akademi.repository.NotificationRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -17,7 +16,6 @@ public class NotificationService {
 
     private final NotificationRepository notificationRepository;
 
-    @Async
     public void sendNotification(User user, String title, String message,
                                   NotificationCategory category, Long referenceId, String referenceType) {
         Notification notification = Notification.builder()

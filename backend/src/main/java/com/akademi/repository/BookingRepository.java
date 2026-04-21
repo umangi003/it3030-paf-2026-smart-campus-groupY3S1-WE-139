@@ -14,10 +14,16 @@ import java.util.Optional;
 @Repository
 public interface BookingRepository extends JpaRepository<Booking, Long> {
 
+    List<Booking> findByUserIdOrderByCreatedAtDesc(Long userId);
+
+    List<Booking> findByResourceIdOrderByCreatedAtDesc(Long resourceId);
+
+    List<Booking> findByStatusOrderByCreatedAtDesc(BookingStatus status);
+
+    List<Booking> findAllByOrderByCreatedAtDesc();
+
     List<Booking> findByUserId(Long userId);
-
     List<Booking> findByResourceId(Long resourceId);
-
     List<Booking> findByStatus(BookingStatus status);
 
     Optional<Booking> findByQrToken(String qrToken);

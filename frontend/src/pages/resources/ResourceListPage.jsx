@@ -198,7 +198,6 @@ export default function ResourceListPage() {
               placeholder="Brief description of the resource..." />
           </div>
 
-          {/* Image URL */}
           <div>
             <label style={labelStyle}>Image URL</label>
             <input style={inputStyle} value={form.imageUrl}
@@ -219,4 +218,4 @@ export default function ResourceListPage() {
       </Modal>
     </div>
   )
-}
+} 

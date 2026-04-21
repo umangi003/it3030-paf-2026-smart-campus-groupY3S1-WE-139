@@ -47,7 +47,6 @@ export default function AdminDashboard() {
     try {
       await incidentApi.assign(incidentId, technicianId)
       toast.success('Technician assigned')
-      // Refresh incidents
       const res = await api.get('/incidents')
       setIncidents(res.data.data || [])
     } catch (err) {
@@ -72,7 +71,20 @@ export default function AdminDashboard() {
         </div>
         <Button variant="outline" onClick={() => navigate('/admin/sla')}>SLA Monitor →</Button>
       </div>
-
+      {/* Quick Links */}
+      <div style={{
+        background: 'var(--white)', borderRadius: 'var(--radius-lg)',
+        border: '1px solid var(--gray-200)', padding: 24, marginBottom:20
+      }}>
+        <p style={{ fontSize: 13, fontWeight: 600, marginBottom: 16 }}>Quick Actions</p>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <Button variant="outline" size="sm" onClick={() => navigate('/resources')}>Manage Resources</Button>
+          <Button variant="outline" size="sm" onClick={() => navigate('/incidents')}>View All Incidents</Button>
+          <Button variant="outline" size="sm" onClick={() => navigate('/bookings')}>View Bookings</Button>
+          <Button variant="outline" size="sm" onClick={() => navigate('/admin/sla')}>SLA Monitor</Button>
+          <Button variant="outline" size="sm" onClick={() => navigate('/resources/analytics')}>Resource Analytics</Button>
+        </div>
+      </div>
       {/* Booking Stats */}
       {stats && (
         <>
@@ -120,7 +132,7 @@ export default function AdminDashboard() {
         </>
       )}
 
-      {/* ── Technician Assignment ── */}
+      {/* Technician Assignment */}
       <div style={{
         background: 'var(--white)', borderRadius: 'var(--radius-lg)',
         border: unassigned.length > 0 ? '1px solid #fca5a5' : '1px solid var(--gray-200)',
@@ -186,19 +198,7 @@ export default function AdminDashboard() {
         )}
       </div>
 
-      {/* Quick Links */}
-      <div style={{
-        background: 'var(--white)', borderRadius: 'var(--radius-lg)',
-        border: '1px solid var(--gray-200)', padding: 24
-      }}>
-        <p style={{ fontSize: 13, fontWeight: 600, marginBottom: 16 }}>Quick Actions</p>
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <Button variant="outline" size="sm" onClick={() => navigate('/resources')}>Manage Resources</Button>
-          <Button variant="outline" size="sm" onClick={() => navigate('/incidents')}>View All Incidents</Button>
-          <Button variant="outline" size="sm" onClick={() => navigate('/bookings')}>View Bookings</Button>
-          <Button variant="outline" size="sm" onClick={() => navigate('/admin/sla')}>SLA Monitor</Button>
-        </div>
-      </div>
+      
     </div>
   )
 }

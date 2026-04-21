@@ -113,7 +113,7 @@ export default function BookingListPage() {
           <h1 style={{ fontSize: 22, fontWeight: 600, letterSpacing: '-0.5px' }}>Bookings</h1>
           <p style={{ fontSize: 14, color: 'var(--gray-600)', marginTop: 2 }}>
             {isAdmin()
-              ? 'All campus bookings — approve or reject pending requests'
+              ? 'All campus bookings'
               : 'Your booking requests'}
           </p>
         </div>

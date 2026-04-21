@@ -68,4 +68,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
            "OR b.status = com.akademi.enums.BookingStatus.COMPLETED " +
            "GROUP BY b.resource.id, b.resource.name ORDER BY COUNT(b) DESC")
     List<Object[]> findResourceUtilisation();
+
+    @Query("SELECT b FROM Booking b WHERE b.status = com.akademi.enums.BookingStatus.APPROVED AND b.endTime < :now")
+    List<Booking> findExpiredApprovedBookings(@Param("now") LocalDateTime now);
 }

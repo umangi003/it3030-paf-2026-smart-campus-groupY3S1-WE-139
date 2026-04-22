@@ -62,7 +62,6 @@ public class NotificationController {
 
     // ── Admin: delete a notification by ID ──────────────────────────────
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Void>> deleteNotification(@PathVariable Long id) {
         notificationService.deleteNotification(id);
         return ResponseEntity.ok(ApiResponse.success("Notification deleted", null));

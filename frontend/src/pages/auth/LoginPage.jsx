@@ -169,7 +169,7 @@ export default function LoginPage() {
           {/* Google OAuth */}
           <div style={{ marginTop: 20, textAlign: 'center' }}>
             <p style={{ fontSize: 12, color: 'var(--gray-400)', marginBottom: 12 }}>or continue with</p>
-            <a href="http://localhost:8080/oauth2/authorize/google" style={{
+            <a href="http://localhost:8081/oauth2/authorize/google" style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
               padding: '10px 16px', borderRadius: 'var(--radius-md)',
               border: '1px solid var(--gray-200)', fontSize: 14, color: 'var(--gray-600)',

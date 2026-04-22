@@ -17,6 +17,12 @@ export default function NotificationPanel({ onClose }) {
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n))
   }
 
+  const deleteNotification = async (id, e) => {
+    e.stopPropagation()
+    await notificationApi.deleteNotification(id)
+    setNotifications(prev => prev.filter(n => n.id !== id))
+  }
+
   return (
     <div style={{
       position: 'fixed', top: 60, right: 24, width: 360,
@@ -31,7 +37,7 @@ export default function NotificationPanel({ onClose }) {
         <p style={{ fontWeight: 600, fontSize: 14 }}>Notifications</p>
         <button onClick={onClose} style={{
           background: 'none', border: 'none', fontSize: 18,
-          color: 'var(--gray-400)', lineHeight: 1
+          color: 'var(--gray-400)', lineHeight: 1, cursor: 'pointer'
         }}>×</button>
       </div>
       <div style={{ overflowY: 'auto', flex: 1 }}>
@@ -50,13 +56,34 @@ export default function NotificationPanel({ onClose }) {
                 width: 6, height: 6, borderRadius: '50%',
                 background: 'var(--green-bright)', flexShrink: 0, marginTop: 5
               }} />}
-              <div style={{ marginLeft: n.read ? 16 : 0 }}>
+              <div style={{ flex: 1, marginLeft: n.read ? 16 : 0 }}>
                 <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 2 }}>{n.title}</p>
                 <p style={{ fontSize: 12, color: 'var(--gray-600)', marginBottom: 4 }}>{n.message}</p>
                 <p style={{ fontSize: 11, color: 'var(--gray-400)', fontFamily: 'var(--font-mono)' }}>
                   {formatDateTime(n.createdAt)}
                 </p>
               </div>
+              {/* Delete button — visible to all users */}
+              <button
+                onClick={(e) => deleteNotification(n.id, e)}
+                style={{
+                  background: '#fee2e2',
+                  border: '1px solid #fca5a5',
+                  borderRadius: 6,
+                  cursor: 'pointer',
+                  color: '#dc2626',
+                  fontSize: 11,
+                  fontWeight: 500,
+                  padding: '3px 8px',
+                  flexShrink: 0,
+                  transition: 'background 0.15s'
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = '#fecaca'}
+                onMouseLeave={e => e.currentTarget.style.background = '#fee2e2'}
+                title="Delete notification"
+              >
+                Delete
+              </button>
             </div>
           </div>
         ))}

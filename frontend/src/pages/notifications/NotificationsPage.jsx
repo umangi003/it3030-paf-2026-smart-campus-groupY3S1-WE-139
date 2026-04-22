@@ -40,6 +40,17 @@ export default function NotificationsPage() {
     window.dispatchEvent(new CustomEvent('notifications-read'))
   }
 
+  const deleteNotification = async (id, e) => {
+    e.stopPropagation()
+    try {
+      await notificationApi.deleteNotification(id)
+      setNotifications(prev => prev.filter(n => n.id !== id))
+      toast.success('Notification deleted')
+    } catch {
+      toast.error('Failed to delete notification')
+    }
+  }
+
   const unreadCount = notifications.filter(n => !n.read).length
 
   return (
@@ -97,6 +108,28 @@ export default function NotificationsPage() {
                   {n.category?.replace(/_/g, ' ')}
                 </span>
               </div>
+              {/* Delete button — visible to all users */}
+              <button
+                onClick={(e) => deleteNotification(n.id, e)}
+                style={{
+                  background: '#fee2e2',
+                  border: '1px solid #fca5a5',
+                  borderRadius: 6,
+                  cursor: 'pointer',
+                  color: '#dc2626',
+                  fontSize: 12,
+                  fontWeight: 500,
+                  padding: '4px 10px',
+                  flexShrink: 0,
+                  marginTop: 2,
+                  transition: 'background 0.15s'
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = '#fecaca'}
+                onMouseLeave={e => e.currentTarget.style.background = '#fee2e2'}
+                title="Delete notification"
+              >
+                Delete
+              </button>
             </div>
           ))}
         </div>

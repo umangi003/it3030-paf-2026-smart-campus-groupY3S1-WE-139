@@ -25,8 +25,6 @@ export default function BookingFormPage() {
     resourceApi.getAvailable().then(r => setResources(r.data.data || []))
   }, [])
 
-  // ── Per-field validator ─────────────────────────────────────────────────────
-  // Pass the full up-to-date form so cross-field checks (end vs start) work correctly.
 
   const validateField = (field, value, currentForm) => {
     const f = { ...currentForm, [field]: value }
@@ -64,17 +62,14 @@ export default function BookingFormPage() {
     }
   }
 
-  // ── onChange — validates the changed field immediately ──────────────────────
 
   const handleChange = (field, value) => {
     const updatedForm = { ...form, [field]: value }
     setForm(updatedForm)
 
-    // Validate the field that just changed
     const fieldError = validateField(field, value, form)
     const newErrors = { ...errors, [field]: fieldError }
 
-    // If start time changed and end time already has a value, re-check end time too
     if (field === 'startTime' && updatedForm.endTime) {
       newErrors.endTime = validateField('endTime', updatedForm.endTime, updatedForm)
     }
@@ -82,7 +77,6 @@ export default function BookingFormPage() {
     setErrors(newErrors)
   }
 
-  // ── Submit — runs all fields one final time before sending ──────────────────
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -118,7 +112,6 @@ export default function BookingFormPage() {
     }
   }
 
-  // ── Styles ──────────────────────────────────────────────────────────────────
 
   const inputStyle = (field) => ({
     width: '100%',
@@ -147,7 +140,6 @@ export default function BookingFormPage() {
     .toISOString()
     .slice(0, 16)
 
-  // Live duration — only shown when both times are valid and end > start
   const durationMinutes =
     form.startTime && form.endTime && !errors.startTime && !errors.endTime
       ? Math.round((new Date(form.endTime) - new Date(form.startTime)) / 60000)
@@ -161,7 +153,6 @@ export default function BookingFormPage() {
     return m === 0 ? `${h} hour${h > 1 ? 's' : ''}` : `${h}h ${m}m`
   }
 
-  // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
     <div style={{ maxWidth: 520, margin: '0 auto' }}>

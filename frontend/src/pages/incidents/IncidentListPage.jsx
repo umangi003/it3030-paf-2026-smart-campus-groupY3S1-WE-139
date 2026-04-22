@@ -17,7 +17,53 @@ const EMPTY_FORM = {
   contactPhone: '',
 }
 
+const EMPTY_ERRORS = {
+  title: '',
+  description: '',
+  location: '',
+  contactPhone: '',
+}
+
 const STATUSES = ['OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED', 'ESCALATED', 'REJECTED']
+
+// Sri Lanka phone: 07X-XXXXXXX (10 digits starting with 07)
+const PHONE_REGEX = /^07[0-9]{8}$/
+
+const validateForm = (form) => {
+  const errors = { ...EMPTY_ERRORS }
+  let valid = true
+
+  if (!form.title.trim()) {
+    errors.title = 'Title is required.'
+    valid = false
+  } else if (form.title.length > 100) {
+    errors.title = 'Title must be 100 characters or fewer.'
+    valid = false
+  }
+
+  if (!form.location.trim()) {
+    errors.location = 'Location is required.'
+    valid = false
+  } else if (form.location.length > 100) {
+    errors.location = 'Location must be 100 characters or fewer.'
+    valid = false
+  }
+
+  if (!form.description.trim()) {
+    errors.description = 'Description is required.'
+    valid = false
+  } else if (form.description.length > 500) {
+    errors.description = 'Description must be 500 characters or fewer.'
+    valid = false
+  }
+
+  if (form.contactPhone.trim() && !PHONE_REGEX.test(form.contactPhone.replace(/\s+/g, ''))) {
+    errors.contactPhone = 'Enter a valid Sri Lanka phone number (e.g. 0771234567).'
+    valid = false
+  }
+
+  return { errors, valid }
+}
 
 export default function IncidentListPage() {
   const navigate = useNavigate()
@@ -26,6 +72,7 @@ export default function IncidentListPage() {
   const [loading, setLoading] = useState(true)
   const [showCreate, setShowCreate] = useState(false)
   const [form, setForm] = useState(EMPTY_FORM)
+  const [formErrors, setFormErrors] = useState(EMPTY_ERRORS)
   const [imageFiles, setImageFiles] = useState([])
   const [imageError, setImageError] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -63,8 +110,25 @@ export default function IncidentListPage() {
     setImageFiles(selected)
   }
 
+  // Live field update + per-field validation
+  const handleFieldChange = (field, value) => {
+    setForm(prev => ({ ...prev, [field]: value }))
+
+    // Clear error as user types (re-validate on submit)
+    if (formErrors[field]) {
+      setFormErrors(prev => ({ ...prev, [field]: '' }))
+    }
+  }
+
   const handleCreate = async (e) => {
     e.preventDefault()
+
+    const { errors, valid } = validateForm(form)
+    if (!valid) {
+      setFormErrors(errors)
+      return
+    }
+
     setSubmitting(true)
     try {
       const res = await incidentApi.create(form)
@@ -77,6 +141,7 @@ export default function IncidentListPage() {
       toast.success('Incident reported successfully!')
       setShowCreate(false)
       setForm(EMPTY_FORM)
+      setFormErrors(EMPTY_ERRORS)
       setImageFiles([])
       setImageError('')
       const updated = isAdmin() ? await incidentApi.getAll() : await incidentApi.getMy()
@@ -91,6 +156,7 @@ export default function IncidentListPage() {
   const handleClose = () => {
     setShowCreate(false)
     setForm(EMPTY_FORM)
+    setFormErrors(EMPTY_ERRORS)
     setImageFiles([])
     setImageError('')
   }
@@ -148,12 +214,14 @@ export default function IncidentListPage() {
     color: priority === 'CRITICAL' ? '#dc2626' : priority === 'HIGH' ? '#d97706' : priority === 'MEDIUM' ? '#2563eb' : '#16a34a',
   })
 
-  const inputStyle = {
+  const inputStyle = (hasError) => ({
     width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-md)',
-    border: '1px solid var(--gray-200)', fontSize: 14, outline: 'none',
+    border: `1px solid ${hasError ? '#fca5a5' : 'var(--gray-200)'}`,
+    fontSize: 14, outline: 'none',
     fontFamily: 'var(--font-sans)', color: 'var(--green-deepest)',
     boxSizing: 'border-box',
-  }
+    background: hasError ? '#fff8f8' : undefined,
+  })
 
   const labelStyle = {
     fontSize: 13, fontWeight: 500, color: 'var(--gray-600)',
@@ -161,6 +229,19 @@ export default function IncidentListPage() {
   }
 
   const fieldStyle = { display: 'flex', flexDirection: 'column' }
+
+  const errorText = (msg) => msg
+    ? <p style={{ fontSize: 12, color: '#dc2626', marginTop: 4 }}>{msg}</p>
+    : null
+
+  const charCounter = (current, max) => {
+    const over = current > max
+    return (
+      <span style={{ fontSize: 11, color: over ? '#dc2626' : 'var(--gray-400)', marginLeft: 'auto' }}>
+        {current}/{max}
+      </span>
+    )
+  }
 
   return (
     <div>
@@ -198,7 +279,6 @@ export default function IncidentListPage() {
               onMouseOver={e => { e.currentTarget.style.boxShadow = 'var(--shadow-sm)'; e.currentTarget.style.borderColor = 'var(--green-mid)' }}
               onMouseOut={e => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.borderColor = 'var(--gray-200)' }}
             >
-              {/* Image thumbnails */}
               {inc.imageUrls?.length > 0 && (
                 <div style={{ display: 'flex', gap: 4, padding: '10px 10px 0' }}>
                   {inc.imageUrls.slice(0, 3).map((url, i) => (
@@ -212,7 +292,6 @@ export default function IncidentListPage() {
                 </div>
               )}
 
-              {/* Card body */}
               <div style={{ padding: '14px 16px', flex: 1 }} onClick={() => navigate(`/incidents/${inc.id}`)}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
                   <StatusBadge status={inc.status} />
@@ -242,7 +321,6 @@ export default function IncidentListPage() {
                 )}
               </div>
 
-              {/* Status dropdown + Delete */}
               <div style={{ padding: '10px 16px', borderTop: '1px solid var(--gray-100)', display: 'flex', gap: 8 }}
                 onClick={e => e.stopPropagation()}>
                 <select
@@ -287,7 +365,6 @@ export default function IncidentListPage() {
               onMouseOver={e => { e.currentTarget.style.boxShadow = 'var(--shadow-sm)'; e.currentTarget.style.borderColor = 'var(--green-mid)' }}
               onMouseOut={e => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.borderColor = 'var(--gray-200)' }}
             >
-              {/* Image thumbnails */}
               {inc.imageUrls?.length > 0 && (
                 <div style={{ display: 'flex', gap: 4, padding: '10px 10px 0' }}>
                   {inc.imageUrls.slice(0, 3).map((url, i) => (
@@ -301,7 +378,6 @@ export default function IncidentListPage() {
                 </div>
               )}
 
-              {/* Card body */}
               <div style={{ padding: '14px 16px', flex: 1 }} onClick={() => navigate(`/incidents/${inc.id}`)}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
                   <StatusBadge status={inc.status} />
@@ -329,7 +405,6 @@ export default function IncidentListPage() {
                 )}
               </div>
 
-              {/* Footer buttons for student */}
               <div style={{ padding: '10px 16px', borderTop: '1px solid var(--gray-100)', display: 'flex', gap: 8 }}
                 onClick={e => e.stopPropagation()}>
                 <button onClick={() => navigate(`/incidents/${inc.id}#comments`)} style={{
@@ -428,20 +503,42 @@ export default function IncidentListPage() {
       {/* Create Modal */}
       <Modal isOpen={showCreate} onClose={handleClose} title="Report Incident">
         <form onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+          {/* Title */}
           <div style={fieldStyle}>
-            <label style={labelStyle}>Title *</label>
-            <input style={inputStyle} value={form.title}
-              onChange={e => setForm(p => ({ ...p, title: e.target.value }))} required />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
+              <label style={{ ...labelStyle, marginBottom: 0 }}>Title *</label>
+              {charCounter(form.title.length, 100)}
+            </div>
+            <input
+              style={inputStyle(!!formErrors.title)}
+              value={form.title}
+              maxLength={100}
+              onChange={e => handleFieldChange('title', e.target.value)}
+            />
+            {errorText(formErrors.title)}
           </div>
+
+          {/* Location */}
           <div style={fieldStyle}>
-            <label style={labelStyle}>Location *</label>
-            <input style={inputStyle} value={form.location}
-              onChange={e => setForm(p => ({ ...p, location: e.target.value }))} required />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
+              <label style={{ ...labelStyle, marginBottom: 0 }}>Location *</label>
+              {charCounter(form.location.length, 100)}
+            </div>
+            <input
+              style={inputStyle(!!formErrors.location)}
+              value={form.location}
+              maxLength={100}
+              onChange={e => handleFieldChange('location', e.target.value)}
+            />
+            {errorText(formErrors.location)}
           </div>
+
+          {/* Category + Priority */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div style={fieldStyle}>
               <label style={labelStyle}>Category *</label>
-              <select style={inputStyle} value={form.category}
+              <select style={inputStyle(false)} value={form.category}
                 onChange={e => setForm(p => ({ ...p, category: e.target.value }))} required>
                 <option value="">Select category</option>
                 <option value="ELECTRICAL">Electrical</option>
@@ -455,7 +552,7 @@ export default function IncidentListPage() {
             </div>
             <div style={fieldStyle}>
               <label style={labelStyle}>Priority *</label>
-              <select style={inputStyle} value={form.priority}
+              <select style={inputStyle(false)} value={form.priority}
                 onChange={e => setForm(p => ({ ...p, priority: e.target.value }))} required>
                 <option value="">Select priority</option>
                 <option value="LOW">Low</option>
@@ -465,23 +562,45 @@ export default function IncidentListPage() {
               </select>
             </div>
           </div>
+
+          {/* Description */}
           <div style={fieldStyle}>
-            <label style={labelStyle}>Description *</label>
-            <textarea style={{ ...inputStyle, height: 100, resize: 'vertical' }}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
+              <label style={{ ...labelStyle, marginBottom: 0 }}>Description *</label>
+              {charCounter(form.description.length, 500)}
+            </div>
+            <textarea
+              style={{ ...inputStyle(!!formErrors.description), height: 100, resize: 'vertical' }}
               value={form.description}
-              onChange={e => setForm(p => ({ ...p, description: e.target.value }))} required />
+              maxLength={500}
+              onChange={e => handleFieldChange('description', e.target.value)}
+            />
+            {errorText(formErrors.description)}
           </div>
+
+          {/* Contact Details */}
           <div style={{ borderTop: '1px solid var(--gray-100)', paddingTop: 14 }}>
             <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--gray-400)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>
               Contact Details (optional)
             </p>
             <div style={fieldStyle}>
               <label style={labelStyle}>Contact Phone</label>
-              <input type="tel" style={inputStyle} placeholder="e.g. 077 123 4567"
+              <input
+                type="tel"
+                style={inputStyle(!!formErrors.contactPhone)}
+                placeholder="e.g. 0771234567"
                 value={form.contactPhone}
-                onChange={e => setForm(p => ({ ...p, contactPhone: e.target.value }))} />
+                maxLength={10}
+                onChange={e => handleFieldChange('contactPhone', e.target.value)}
+              />
+              {formErrors.contactPhone
+                ? errorText(formErrors.contactPhone)
+                : <p style={{ fontSize: 11, color: 'var(--gray-400)', marginTop: 4 }}>Sri Lanka numbers only (07X XXXXXXX)</p>
+              }
             </div>
           </div>
+
+          {/* Attachments */}
           <div style={{ borderTop: '1px solid var(--gray-100)', paddingTop: 14 }}>
             <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--gray-400)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>
               Attachments (max 3 images)
@@ -500,10 +619,16 @@ export default function IncidentListPage() {
               </div>
             )}
           </div>
+
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 8 }}>
             <Button variant="outline" onClick={handleClose} type="button">Cancel</Button>
-            <button type="submit" style={{ padding: '9px 18px', background: 'green', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer' }}>
-              Submit Report
+            <button type="submit" disabled={submitting} style={{
+              padding: '9px 18px', background: 'green', color: 'white',
+              border: 'none', borderRadius: 6,
+              cursor: submitting ? 'not-allowed' : 'pointer',
+              opacity: submitting ? 0.7 : 1,
+            }}>
+              {submitting ? 'Submitting...' : 'Submit Report'}
             </button>
           </div>
         </form>

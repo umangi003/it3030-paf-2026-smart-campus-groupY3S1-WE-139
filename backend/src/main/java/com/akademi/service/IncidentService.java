@@ -37,6 +37,12 @@ public class IncidentService {
 
     public Incident addImageUrls(Long id, List<String> urls) {
         Incident incident = getIncidentById(id);
+
+        // Backend validation — max 3 image attachments allowed
+        if (incident.getImageUrls().size() + urls.size() > 3) {
+            throw new IllegalArgumentException("Maximum 3 image attachments allowed per incident");
+        }
+
         incident.getImageUrls().addAll(urls);
         return incidentRepository.save(incident);
     }

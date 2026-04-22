@@ -25,7 +25,7 @@ public class BookingSchedulerService {
     private final ResourceRepository resourceRepository;
     private final NotificationService notificationService;
 
-    // Runs every minute to check for expired bookings
+    //expired bookings
     @Scheduled(fixedRate = 60000)
     @Transactional
     public void completeExpiredBookings() {
@@ -33,16 +33,13 @@ public class BookingSchedulerService {
         List<Booking> expired = bookingRepository.findExpiredApprovedBookings(LocalDateTime.now());
 
         for (Booking booking : expired) {
-            // Mark booking as COMPLETED
             booking.setStatus(BookingStatus.COMPLETED);
             bookingRepository.save(booking);
 
-            // Free up the resource so others can book it
             Resource resource = booking.getResource();
             resource.setStatus(ResourceStatus.AVAILABLE);
             resourceRepository.save(resource);
 
-            // Notify the user
             notificationService.sendNotification(
                     booking.getUser(),
                     "Booking Completed",
@@ -56,4 +53,22 @@ public class BookingSchedulerService {
                     booking.getId(), resource.getName());
         }
     }
-}
+
+    // Runs every minute to mark resources UNAVAILABLE when their booking time starts
+    @Scheduled(fixedRate = 60000)
+    @Transactional
+    public void lockResourcesForActiveBookings() {
+        log.info("Checking for bookings that have started...");
+        LocalDateTime now = LocalDateTime.now();
+        List<Booking> active = bookingRepository.findActiveApprovedBookings(now);
+
+        for (Booking booking : active) {
+            Resource resource = booking.getResource();
+            if (resource.getStatus() != ResourceStatus.UNAVAILABLE) {
+                resource.setStatus(ResourceStatus.UNAVAILABLE);
+                resourceRepository.save(resource);
+                log.info("Resource '{}' set to UNAVAILABLE (booking #{} in progress)",
+                        resource.getName(), booking.getId());
+            }
+        }
+    }}

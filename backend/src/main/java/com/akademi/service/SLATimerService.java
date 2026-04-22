@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -23,6 +24,7 @@ public class SLATimerService {
 
     // Runs every 30 minutes to check for SLA breaches
     @Scheduled(fixedRate = 1800000)
+    @Transactional
     public void checkResponseBreaches() {
         log.info("Checking SLA response breaches...");
         List<SLARecord> breaches = slaRecordRepository
@@ -50,6 +52,7 @@ public class SLATimerService {
 
     // Runs every 30 minutes to check for resolution breaches
     @Scheduled(fixedRate = 1800000)
+    @Transactional
     public void checkResolveBreaches() {
         log.info("Checking SLA resolve breaches...");
         List<SLARecord> breaches = slaRecordRepository
@@ -83,6 +86,7 @@ public class SLATimerService {
 
     // Runs every hour to send SLA warnings (1 hour before breach)
     @Scheduled(fixedRate = 3600000)
+    @Transactional
     public void checkUpcomingBreaches() {
         log.info("Checking upcoming SLA breaches...");
         LocalDateTime warningThreshold = LocalDateTime.now().plusHours(1);

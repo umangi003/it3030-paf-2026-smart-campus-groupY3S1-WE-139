@@ -65,12 +65,10 @@ public class BookingService {
         Resource resource = resourceRepository.findById(request.getResourceId())
                 .orElseThrow(() -> new ResourceNotFoundException("Resource", request.getResourceId()));
 
-        // 1. End time must be strictly after start time (not equal)
         if (!request.getEndTime().isAfter(request.getStartTime())) {
             throw new IllegalStateException("End time must be after start time");
         }
 
-        // 2. Resource must be bookable — MAINTENANCE and RETIRED resources cannot be booked
         if (resource.getStatus() == ResourceStatus.MAINTENANCE) {
             throw new IllegalStateException("This resource is currently under maintenance and cannot be booked");
         }
@@ -78,7 +76,6 @@ public class BookingService {
             throw new IllegalStateException("This resource has been retired and is no longer available for booking");
         }
 
-        // 3. Attendees must not exceed the resource's capacity (only enforced when both are set)
         if (request.getAttendees() != null && resource.getCapacity() != null
                 && request.getAttendees() > resource.getCapacity()) {
             throw new IllegalStateException(
@@ -86,8 +83,6 @@ public class BookingService {
                 + resource.getCapacity() + ")");
         }
 
-        // 4. Booking must be within the resource's operating hours (only enforced when both are set).
-        // Also rejects bookings that cross midnight, which always exceed the operating window.
         if (resource.getOpeningTime() != null && resource.getClosingTime() != null) {
             java.time.LocalTime bookingStart = request.getStartTime().toLocalTime();
             java.time.LocalTime bookingEnd   = request.getEndTime().toLocalTime();
@@ -102,7 +97,6 @@ public class BookingService {
             }
         }
 
-        // 5. No overlapping approved/pending bookings for the same resource
         List<Booking> overlapping = bookingRepository.findOverlappingBookings(
                 request.getResourceId(), request.getStartTime(), request.getEndTime());
         if (!overlapping.isEmpty()) {
@@ -114,9 +108,9 @@ public class BookingService {
                 .resource(resource)
                 .startTime(request.getStartTime())
                 .endTime(request.getEndTime())
-                .status(BookingStatus.PENDING)        // Fix 1: was CONFIRMED
+                .status(BookingStatus.PENDING)        
                 .purpose(request.getPurpose())
-                .attendees(request.getAttendees())    // Fix 4
+                .attendees(request.getAttendees())    
                 .build();
 
         Booking saved = bookingRepository.save(booking);
@@ -140,11 +134,6 @@ public class BookingService {
                 "Only PENDING bookings can be approved. Current status: " + booking.getStatus());
         }
         booking.setStatus(BookingStatus.APPROVED);
-
-        // NOTE: We do NOT change the resource status here.
-        // The scheduler (BookingSchedulerService) will mark it UNAVAILABLE
-        // only when the booking's startTime is reached, and AVAILABLE again
-        // after the booking's endTime — so availability reflects actual usage time.
 
         Booking saved = bookingRepository.save(booking);
 
@@ -189,13 +178,11 @@ public class BookingService {
         if (!booking.getUser().getId().equals(user.getId())) {
             throw new RuntimeException("You can only cancel your own bookings");
         }
-        // Fix 7: only APPROVED bookings can be cancelled
         if (booking.getStatus() != BookingStatus.APPROVED) {
             throw new IllegalStateException("Only approved bookings can be cancelled");
         }
         booking.setStatus(BookingStatus.CANCELLED);
 
-        // Restore resource to AVAILABLE so it reappears in the booking form
         Resource resource = booking.getResource();
         resource.setStatus(ResourceStatus.AVAILABLE);
         resourceRepository.save(resource);

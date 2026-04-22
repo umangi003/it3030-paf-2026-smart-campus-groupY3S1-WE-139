@@ -7,10 +7,10 @@ import com.akademi.service.NotificationService;
 import com.akademi.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
-
 
 import java.util.List;
 
@@ -58,5 +58,13 @@ public class NotificationController {
         User user = userService.getUserByEmail(userDetails.getUsername());
         notificationService.markAllAsRead(user.getId());
         return ResponseEntity.ok(ApiResponse.success("All notifications marked as read", null));
+    }
+
+    // ── Admin: delete a notification by ID ──────────────────────────────
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<Void>> deleteNotification(@PathVariable Long id) {
+        notificationService.deleteNotification(id);
+        return ResponseEntity.ok(ApiResponse.success("Notification deleted", null));
     }
 }

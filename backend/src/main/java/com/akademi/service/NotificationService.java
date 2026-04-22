@@ -1,6 +1,7 @@
 package com.akademi.service;
 
 import com.akademi.enums.NotificationCategory;
+import com.akademi.exception.ResourceNotFoundException;
 import com.akademi.model.Notification;
 import com.akademi.model.User;
 import com.akademi.repository.NotificationRepository;
@@ -58,5 +59,12 @@ public class NotificationService {
             n.setReadAt(LocalDateTime.now());
         });
         notificationRepository.saveAll(unread);
+    }
+
+    // ── Admin: delete a notification by ID ──────────────────────────────
+    public void deleteNotification(Long notificationId) {
+        Notification notification = notificationRepository.findById(notificationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Notification", notificationId));
+        notificationRepository.delete(notification);
     }
 }

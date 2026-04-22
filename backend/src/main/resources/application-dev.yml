@@ -3,10 +3,10 @@ spring:
     url: jdbc:mysql://localhost:3306/akademi_dev?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
     username: root
     password: 123456Ad
-
+    
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     show-sql: true
     properties:
       hibernate:

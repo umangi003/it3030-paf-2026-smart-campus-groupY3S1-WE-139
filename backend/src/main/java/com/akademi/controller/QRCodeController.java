@@ -17,20 +17,15 @@ public class QRCodeController {
 
     private final BookingService bookingService;
 
-    // Fix 5: now calls verifyAndCheckIn() which saves checkedInAt to the DB
-    // Fix 6: this endpoint is already public in SecurityConfig (/qr/verify/**)
-    //        The frontend route fix (App.jsx) makes the PAGE public too
     @GetMapping("/verify/{token}")
     public ResponseEntity<ApiResponse<QRVerifyResponse>> verifyQRToken(@PathVariable String token) {
         try {
-            // This saves the check-in if valid — the returned booking has checkedInAt set
             Booking booking = bookingService.verifyAndCheckIn(token);
 
             boolean isExpired = booking.getQrTokenExpiry() != null &&
                     booking.getQrTokenExpiry().isBefore(LocalDateTime.now());
             boolean checkedIn = booking.getCheckedInAt() != null;
 
-            // isValid: the check-in was just recorded (not expired, and now has a checkedInAt)
             boolean isValid = !isExpired && checkedIn;
 
             String message;

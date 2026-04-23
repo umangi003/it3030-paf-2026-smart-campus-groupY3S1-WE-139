@@ -16,9 +16,9 @@ export default function BookingListPage() {
   const { isAdmin } = useAuth()
   const [bookings, setBookings] = useState([])
   const [loading, setLoading] = useState(true)
-  const [statusFilter, setStatusFilter] = useState('ALL')       // Fix 3
-  const [rejectModal, setRejectModal] = useState({ open: false, bookingId: null })  // Fix 2
-  const [rejectReason, setRejectReason] = useState('')           // Fix 2
+  const [statusFilter, setStatusFilter] = useState('ALL')       
+  const [rejectModal, setRejectModal] = useState({ open: false, bookingId: null })  
+  const [rejectReason, setRejectReason] = useState('')          
   const [actionLoading, setActionLoading] = useState(false)
 
   // re-fetch whenever the status filter changes

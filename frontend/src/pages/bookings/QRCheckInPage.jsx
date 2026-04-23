@@ -110,7 +110,6 @@ export default function QRCheckInPage() {
                 ['Resource', result.resourceName],
                 ['Start',    formatDateTime(result.startTime)],
                 ['End',      formatDateTime(result.endTime)],
-                // Fix 5: shows the real checkedInAt timestamp saved to DB
                 result.checkedInAt
                   ? ['Checked In', formatDateTime(result.checkedInAt)]
                   : null,

@@ -1,9 +1,9 @@
 import { NavLink } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
-const commonItems = [
+const getCommonItems = (isAdmin) => [
   { to: '/resources', label: 'Resources',      icon: '⬡' },
-  { to: '/bookings',  label: 'My Bookings',    icon: '◫' },
+  { to: '/bookings',  label: isAdmin ? 'Bookings' : 'My Bookings', icon: '◫' },
   { to: '/incidents', label: 'Incidents',      icon: '◈' },
   { to: '/notifications', label: 'Notifications', icon: '◎' },
 ]
@@ -76,7 +76,7 @@ export default function Sidebar() {
           </div>
         ) : (
           <div style={{ marginBottom: 8 }}>
-            {commonItems.map(item => <NavItem key={item.to} {...item} />)}
+            {getCommonItems(isAdmin()).map(item => <NavItem key={item.to} {...item} />)}
           </div>
         )}
 

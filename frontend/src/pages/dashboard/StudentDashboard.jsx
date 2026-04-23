@@ -46,7 +46,7 @@ export default function StudentDashboard() {
   }, [])
 
   const upcomingBookings = bookings
-    .filter(b => b.status === 'CONFIRMED' || b.status === 'PENDING')
+    .filter(b => b.status === 'APPROVED' || b.status === 'PENDING')
     .slice(0, 4)
 
   const activeIncidents = incidents
@@ -72,7 +72,7 @@ export default function StudentDashboard() {
         <StatCard label="My Bookings" value={bookings.length} onClick={() => navigate('/bookings')} />
         <StatCard
           label="Active Bookings"
-          value={bookings.filter(b => b.status === 'CONFIRMED' || b.status === 'PENDING').length}
+          value={bookings.filter(b => b.status === 'APPROVED' || b.status === 'PENDING').length}
           accent="var(--green-mid)"
           onClick={() => navigate('/bookings')}
         />

@@ -2,6 +2,7 @@ package com.akademi.service;
 
 import com.akademi.dto.request.CommentRequest;
 import com.akademi.dto.response.CommentResponse;
+import com.akademi.enums.NotificationCategory;
 import com.akademi.exception.ResourceNotFoundException;
 import com.akademi.model.Comment;
 import com.akademi.model.Incident;
@@ -21,12 +22,12 @@ public class CommentService {
 
     private final CommentRepository commentRepository;
     private final IncidentRepository incidentRepository;
+    private final NotificationService notificationService;
 
     public CommentResponse addComment(Long incidentId, CommentRequest request, User author) {
         Incident incident = incidentRepository.findById(incidentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Incident", incidentId));
 
-        // Student can only comment on their own incidents
         boolean isAdmin = author.getRole().name().equals("ADMIN");
         if (!isAdmin && !incident.getReportedBy().getId().equals(author.getId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
@@ -40,6 +41,22 @@ public class CommentService {
                 .build();
 
         comment = commentRepository.save(comment);
+
+        // Notify incident owner if someone else commented
+        User incidentOwner = incident.getReportedBy();
+        boolean commentedByOwner = incidentOwner.getId().equals(author.getId());
+
+        if (!commentedByOwner) {
+            notificationService.sendNotification(
+                incidentOwner,
+                "New comment on your incident",
+                author.getName() + " commented on \"" + incident.getTitle() + "\": " + request.getContent(),
+                NotificationCategory.INCIDENT_UPDATED,
+                incident.getId(),
+                "INCIDENT"
+            );
+        }
+
         return toResponse(comment, author.getId());
     }
 
@@ -54,7 +71,6 @@ public class CommentService {
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Comment", commentId));
 
-        // Only the author can edit their own comment
         if (!comment.getUser().getId().equals(requestingUser.getId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "You can only edit your own comments");
@@ -72,7 +88,6 @@ public class CommentService {
         boolean isAdmin = requestingUser.getRole().name().equals("ADMIN");
         boolean isOwner = comment.getUser().getId().equals(requestingUser.getId());
 
-        // Admin can delete any comment, others can only delete their own
         if (!isAdmin && !isOwner) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "You can only delete your own comments");

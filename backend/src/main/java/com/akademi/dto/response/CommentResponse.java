@@ -14,5 +14,5 @@ public class CommentResponse {
     private String authorName;
     private String authorRole;
     private LocalDateTime createdAt;
-    private boolean isOwner;
+    private Boolean isOwner;
 }

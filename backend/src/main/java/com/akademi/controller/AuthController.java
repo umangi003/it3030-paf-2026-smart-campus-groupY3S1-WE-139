@@ -4,6 +4,7 @@ import com.akademi.config.security.JwtTokenProvider;
 import com.akademi.dto.response.ApiResponse;
 import com.akademi.dto.response.UserSummaryDto;
 import com.akademi.enums.Role;
+import com.akademi.enums.TicketCategory;
 import com.akademi.model.User;
 import com.akademi.service.UserService;
 import jakarta.validation.Valid;
@@ -78,6 +79,10 @@ public class AuthController {
                 .password(passwordEncoder.encode(request.getPassword()))
                 .role(Role.TECHNICIAN)
                 .active(true)
+                .phone(request.getPhone())
+                .address(request.getAddress())
+                .personalEmail(request.getPersonalEmail())
+                .specialization(request.getSpecialization())
                 .build();
 
         User saved = userService.saveUser(user);
@@ -130,16 +135,26 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success("ok", response));
     }
 
-
     @GetMapping("/users/technicians")
     public ResponseEntity<ApiResponse<List<UserSummaryDto>>> getTechnicians() {
         List<UserSummaryDto> technicians = userService.getUsersByRole(Role.TECHNICIAN)
             .stream()
-            .map(u -> new UserSummaryDto(u.getId(), u.getName(), u.getEmail(), u.getRole()))
+            .map(u -> new UserSummaryDto(
+                u.getId(),
+                u.getName(),
+                u.getEmail(),
+                u.getRole(),
+                u.isActive(),
+                u.getProfilePicture(),
+                u.getCreatedAt(),
+                u.getPhone(),
+                u.getAddress(),
+                u.getPersonalEmail(),
+                u.getSpecialization()
+            ))
             .toList();
         return ResponseEntity.ok(new ApiResponse<>(true, "Technicians", technicians));
     }
-
 
     @Getter @Setter
     public static class RegisterRequest {
@@ -158,6 +173,12 @@ public class AuthController {
         private String password;
 
         private Role role;
+
+        // ── Technician-only optional fields ──
+        private String phone;
+        private String address;
+        private String personalEmail;
+        private TicketCategory specialization;
     }
 
     @Getter @Setter

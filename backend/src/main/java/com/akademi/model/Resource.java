@@ -35,6 +35,7 @@ public class Resource {
     @Column(nullable = false)
     private ResourceStatus status;
 
+    @Column(name = "image_url", columnDefinition = "LONGTEXT")
     private String imageUrl;
 
     @Column(name = "opening_time")

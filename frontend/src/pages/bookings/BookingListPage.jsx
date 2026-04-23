@@ -96,10 +96,10 @@ export default function BookingListPage() {
   }
 
   const handleDelete = async (id) => {
-  if (!confirm('Permanently delete this booking request?')) return
+  if (!confirm('Withdraw this booking request? This cannot be undone.')) return
   try {
     await bookingApi.delete(id)
-    toast.success('Booking deleted')
+    toast.success('Booking request withdrawn')
     fetchBookings()
   } catch (err) {
     toast.error(getErrorMessage(err))
@@ -293,14 +293,14 @@ export default function BookingListPage() {
                     Cancel
                   </Button>
                 )}
-                {/* Delete — only for PENDING bookings (submitted by mistake) */}
+                {/* Withdraw — only for PENDING bookings, before admin reviews */}
                 {!isAdmin() && b.status === 'PENDING' && (
                   <Button
                     size="sm"
                     variant="danger"
                     onClick={() => handleDelete(b.id)}
                   >
-                    Delete
+                    Withdraw
                  </Button>
                 )}
               </div>

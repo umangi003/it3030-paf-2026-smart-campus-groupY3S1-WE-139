@@ -7,7 +7,7 @@ import Button from '../../components/common/Button'
 import toast from 'react-hot-toast'
 import { getErrorMessage } from '../../utils/helpers'
 
-//Validation
+// ── Validation ────────────────────────────────────────────────────────────────
 function validateForm(form) {
   const errors = {}
 
@@ -49,7 +49,7 @@ function validateForm(form) {
   return errors
 }
 
-//Styles
+// ── Styles ────────────────────────────────────────────────────────────────────
 const inputBase = {
   width: '100%', padding: '8px 12px', borderRadius: 'var(--radius-md)',
   fontSize: 14, outline: 'none', fontFamily: 'var(--font-sans)',
@@ -71,7 +71,7 @@ function Field({ label, error, children }) {
   )
 }
 
-//Image Uploader
+// ── Image Uploader ────────────────────────────────────────────────────────────
 function ImageUploader({ value, onChange }) {
   const fileRef = useRef()
   const [tab, setTab] = useState('upload')
@@ -163,7 +163,7 @@ function ImageUploader({ value, onChange }) {
   )
 }
 
-//Main Component
+// ── Main Component ────────────────────────────────────────────────────────────
 export default function ResourceDetailPage() {
   const { id }      = useParams()
   const navigate    = useNavigate()
@@ -371,13 +371,25 @@ export default function ResourceDetailPage() {
                   <span style={{ fontSize: 14, color: 'var(--green-deepest)' }}>{value}</span>
                 </div>
               ))}
-              {!isAdmin() && (
-                <div style={{ marginTop: 8 }}>
-                  <Button onClick={() => navigate(`/bookings/new?resourceId=${resource.id}`)}>
+            {!isAdmin() && (
+              <div style={{ marginTop: 8 }}>
+                {resource.status === 'AVAILABLE' ? (
+              <Button onClick={() => navigate(`/bookings/new?resourceId=${resource.id}`)}>
                   Book this Resource
-                  </Button>
-                </div>
-              )}
+              </Button>
+            ) : (
+              <div style={{
+              padding: '10px 16px', borderRadius: 'var(--radius-md)',
+              background: '#f9fafb', border: '1px solid var(--gray-200)',
+              fontSize: 13, color: 'var(--gray-400)', display: 'inline-block'
+            }}>
+              {resource.status === 'MAINTENANCE' && '🔧 This resource is under maintenance and cannot be booked'}
+              {resource.status === 'UNAVAILABLE' && '🚫 This resource is currently unavailable'}
+              {resource.status === 'RETIRED' && '📦 This resource has been retired'}
+            </div>
+            )}
+            </div>
+            )}
             </div>
           )}
         </div>

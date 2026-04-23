@@ -33,13 +33,21 @@ public class SecurityConfig {
             .sessionManagement(session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                // Public endpoints
+                // ── Admin-only auth endpoints (must come BEFORE the broad /auth/** permit) ──
+                .requestMatchers(HttpMethod.GET,   "/auth/users").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.PATCH, "/auth/users/*/role").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.PATCH, "/auth/users/*/active").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.POST,  "/auth/register/technician").hasRole("ADMIN")
+
+                // ── Public endpoints ──
                 .requestMatchers("/auth/**", "/oauth2/**", "/uploads/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/resources/**").permitAll()
                 .requestMatchers("/qr/verify/**").permitAll()
-                // Admin only
+
+                // ── Admin only ──
                 .requestMatchers("/admin/**", "/analytics/**").hasRole("ADMIN")
-                // Everything else requires authentication
+
+                // ── Everything else requires authentication ──
                 .anyRequest().authenticated()
             )
             .oauth2Login(oauth2 -> oauth2

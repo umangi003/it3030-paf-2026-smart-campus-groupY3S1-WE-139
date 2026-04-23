@@ -3,6 +3,7 @@ import { Toaster } from 'react-hot-toast'
 import { AuthProvider } from './context/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import LandingLayout from './pages/LandingLayout'
+import UserManagementPage from './pages/admin/UserManagementPage'
 
 import LoginPage from './pages/auth/LoginPage'
 import OAuth2Redirect from './pages/auth/OAuth2Redirect'
@@ -73,6 +74,7 @@ export default function App() {
             {/* Admin */}
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/admin/sla" element={<SLADashboard />} />
+            <Route path="/admin/users" element={<UserManagementPage />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

@@ -1,6 +1,8 @@
 package com.akademi.model;
 
 import com.akademi.enums.Role;
+import com.akademi.enums.TicketCategory;
+
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -49,6 +51,15 @@ public class User {
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
     private NotificationPreference notificationPreference;
+
+    private String phone;
+
+    private String address;
+
+    private String personalEmail;
+
+    @Enumerated(EnumType.STRING)
+    private TicketCategory specialization;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

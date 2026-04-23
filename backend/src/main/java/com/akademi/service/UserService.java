@@ -1,5 +1,6 @@
 package com.akademi.service;
 
+import com.akademi.dto.response.UserSummaryDto;
 import com.akademi.enums.Role;
 import com.akademi.exception.ResourceNotFoundException;
 import com.akademi.model.User;
@@ -27,6 +28,7 @@ public class UserService implements UserDetailsService {
                 .withUsername(user.getEmail())
                 .password(user.getPassword() != null ? user.getPassword() : "")
                 .roles(user.getRole().name())
+                .disabled(!user.isActive()) // ← added
                 .build();
     }
 
@@ -40,11 +42,12 @@ public class UserService implements UserDetailsService {
                 .orElseThrow(() -> new ResourceNotFoundException("User", id));
     }
 
-    public List<User> getAllUsers() {
-        return userRepository.findAll();
+    public List<UserSummaryDto> getAllUsers() {
+        return userRepository.findAll().stream()
+                .map(this::toDto)
+                .toList();
     }
 
-    // Used for populating technician assignment dropdown in admin dashboard
     public List<User> getUsersByRole(Role role) {
         return userRepository.findByRole(role);
     }
@@ -55,5 +58,33 @@ public class UserService implements UserDetailsService {
 
     public boolean existsByEmail(String email) {
         return userRepository.existsByEmail(email);
+    }
+
+    public UserSummaryDto changeRole(Long id, Role newRole) {
+        User user = getUserById(id);
+        user.setRole(newRole);
+        return toDto(userRepository.save(user));
+    }
+
+    public UserSummaryDto setActive(Long id, boolean active) {
+        User user = getUserById(id);
+        user.setActive(active);
+        return toDto(userRepository.save(user));
+    }
+
+    private UserSummaryDto toDto(User u) {
+        return new UserSummaryDto(
+                u.getId(),
+                u.getName(),
+                u.getEmail(),
+                u.getRole(),
+                u.isActive(),
+                u.getProfilePicture(),
+                u.getCreatedAt(),
+                u.getPhone(),
+                u.getAddress(),
+                u.getPersonalEmail(),
+                u.getSpecialization()
+        );
     }
 }

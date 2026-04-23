@@ -18,9 +18,11 @@ const technicianItems = [
 ]
 
 const adminItems = [
-  { to: '/admin',     label: 'Dashboard',  icon: '▤' },
-  { to: '/admin/sla', label: 'SLA Monitor', icon: '◷' },
+  { to: '/admin',       label: 'Dashboard',    icon: '▤' },
+  { to: '/admin/users', label: 'Users & Roles', icon: '◉' },
+  { to: '/admin/sla',   label: 'SLA Monitor',  icon: '◷' },
 ]
+
 
 function NavItem({ to, label, icon }) {
   return (

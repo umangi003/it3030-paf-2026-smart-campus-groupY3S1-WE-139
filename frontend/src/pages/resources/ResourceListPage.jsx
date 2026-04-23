@@ -74,7 +74,7 @@ function Field({ label, error, children }) {
 //Image Upload Component 
 function ImageUploader({ value, onChange }) {
   const fileRef = useRef()
-  const [tab, setTab] = useState('upload') // 'upload' | 'url'
+  const [tab, setTab] = useState('upload') 
   const [urlInput, setUrlInput] = useState('')
 
   const handleFile = (e) => {
@@ -85,7 +85,7 @@ function ImageUploader({ value, onChange }) {
       return
     }
     const reader = new FileReader()
-    reader.onload = () => onChange(reader.result) // base64 string
+    reader.onload = () => onChange(reader.result) 
     reader.readAsDataURL(file)
   }
 

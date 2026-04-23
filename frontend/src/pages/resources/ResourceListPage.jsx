@@ -8,7 +8,7 @@ import Modal from '../../components/common/Modal'
 import toast from 'react-hot-toast'
 import { getErrorMessage } from '../../utils/helpers'
 
-// ── Validation ────────────────────────────────────────────────────────────────
+//Validation
 function validateForm(form) {
   const errors = {}
 
@@ -50,7 +50,7 @@ function validateForm(form) {
   return errors
 }
 
-// ── Styles ────────────────────────────────────────────────────────────────────
+// Styles
 const inputBase = {
   width: '100%', padding: '8px 12px', borderRadius: 'var(--radius-md)',
   fontSize: 14, outline: 'none', fontFamily: 'var(--font-sans)',
@@ -71,7 +71,7 @@ function Field({ label, error, children }) {
   )
 }
 
-// ── Image Upload Component ────────────────────────────────────────────────────
+//Image Upload Component 
 function ImageUploader({ value, onChange }) {
   const fileRef = useRef()
   const [tab, setTab] = useState('upload') // 'upload' | 'url'
@@ -175,7 +175,7 @@ function ImageUploader({ value, onChange }) {
   )
 }
 
-// ── Main Component ────────────────────────────────────────────────────────────
+//Main Component
 const emptyForm = {
   name: '', description: '', location: '', capacity: '',
   status: 'AVAILABLE', imageUrl: '', openingTime: '', closingTime: ''
@@ -192,6 +192,7 @@ export default function ResourceListPage() {
   const [form,       setForm]       = useState(emptyForm)
   const [errors,     setErrors]     = useState({})
   const [touched,    setTouched]    = useState({})
+  const [submitted, setSubmitted] = useState(false)
 
   useEffect(() => { fetchResources() }, [])
 
@@ -212,16 +213,20 @@ export default function ResourceListPage() {
     } catch {}
   }
 
+ 
   const handleChange = (field, value) => {
-    const updated = { ...form, [field]: value }
-    setForm(updated)
-    setTouched(t => ({ ...t, [field]: true }))
-    setErrors(validateForm(updated))
+    setForm(prev => ({ ...prev, [field]: value }))
   }
 
+  
   const handleBlur = (field) => {
     setTouched(t => ({ ...t, [field]: true }))
-    setErrors(validateForm(form))
+    setErrors(validateForm({ ...form }))
+  }
+
+  const handleTimeBlur = () => {
+    setTouched(t => ({ ...t, openingTime: true, closingTime: true }))
+    setErrors(validateForm({ ...form }))
   }
 
   const inp = (field) => touched[field] && errors[field] ? inputErr : inputOk
@@ -234,7 +239,7 @@ export default function ResourceListPage() {
     setErrors(errs)
     if (Object.keys(errs).length > 0) return
 
-    setSubmitting(true)
+    setSubmitted(true)
     try {
       await resourceApi.create({
         name: form.name.trim(),
@@ -261,10 +266,11 @@ export default function ResourceListPage() {
     setForm(emptyForm)
     setErrors({})
     setTouched({})
+    setSubmitted(false)
   }
 
   const hasErrors = Object.keys(validateForm(form)).length > 0
-  const showSummary = Object.keys(touched).length > 0 && hasErrors
+  const showSummary = submitted && hasErrors
 
   return (
     <div>
@@ -359,12 +365,12 @@ export default function ResourceListPage() {
             <Field label="Opening Time" error={touched.openingTime && errors.openingTime}>
               <input style={inp('openingTime')} type="time" value={form.openingTime}
                 onChange={e => handleChange('openingTime', e.target.value)}
-                onBlur={() => handleBlur('openingTime')} />
+                onBlur={() => handleBlur()} />
             </Field>
             <Field label="Closing Time" error={touched.closingTime && errors.closingTime}>
               <input style={inp('closingTime')} type="time" value={form.closingTime}
                 onChange={e => handleChange('closingTime', e.target.value)}
-                onBlur={() => handleBlur('closingTime')} />
+                onBlur={() => handleBlur()} />
             </Field>
           </div>
 

@@ -175,6 +175,7 @@ export default function ResourceDetailPage() {
   const [form,       setForm]       = useState({})
   const [errors,     setErrors]     = useState({})
   const [touched,    setTouched]    = useState({})
+  const [submitted, setSubmitted] = useState(false)
 
   useEffect(() => {
     resourceApi.getById(id)
@@ -183,16 +184,20 @@ export default function ResourceDetailPage() {
       .finally(() => setLoading(false))
   }, [id])
 
+  
   const handleChange = (field, value) => {
-    const updated = { ...form, [field]: value }
-    setForm(updated)
-    setTouched(t => ({ ...t, [field]: true }))
-    setErrors(validateForm(updated))
+    setForm(prev => ({ ...prev, [field]: value }))
   }
 
+  
   const handleBlur = (field) => {
     setTouched(t => ({ ...t, [field]: true }))
-    setErrors(validateForm(form))
+    setErrors(validateForm({ ...form }))
+  }
+
+  const handleTimeBlur = () => {
+    setTouched(t => ({ ...t, openingTime: true, closingTime: true }))
+    setErrors(validateForm({ ...form }))
   }
 
   const inp = (field) => touched[field] && errors[field] ? inputErr : inputOk
@@ -205,7 +210,7 @@ export default function ResourceDetailPage() {
     setErrors(errs)
     if (Object.keys(errs).length > 0) return
 
-    setSubmitting(true)
+    setSubmitted(true)
     try {
       const res = await resourceApi.update(id, {
         name: form.name.trim(),
@@ -234,6 +239,7 @@ export default function ResourceDetailPage() {
     setForm(resource)
     setErrors({})
     setTouched({})
+    setSubmitted(false)
   }
 
   const handleDelete = async () => {
@@ -246,7 +252,7 @@ export default function ResourceDetailPage() {
   }
 
   const hasErrors = Object.keys(validateForm(form)).length > 0
-  const showSummary = Object.keys(touched).length > 0 && hasErrors
+  const showSummary = submitted && hasErrors
 
   if (loading) return <p style={{ color: 'var(--gray-400)', fontSize: 14 }}>Loading...</p>
   if (!resource) return <p style={{ color: 'var(--gray-400)', fontSize: 14 }}>Resource not found.</p>
@@ -316,12 +322,12 @@ export default function ResourceDetailPage() {
                 <Field label="Opening Time" error={touched.openingTime && errors.openingTime}>
                   <input style={inp('openingTime')} type="time" value={form.openingTime || ''}
                     onChange={e => handleChange('openingTime', e.target.value)}
-                    onBlur={() => handleBlur('openingTime')} />
+                    onBlur={() => handleBlur()} />
                 </Field>
                 <Field label="Closing Time" error={touched.closingTime && errors.closingTime}>
                   <input style={inp('closingTime')} type="time" value={form.closingTime || ''}
                     onChange={e => handleChange('closingTime', e.target.value)}
-                    onBlur={() => handleBlur('closingTime')} />
+                    onBlur={() => handleBlur()} />
                 </Field>
               </div>
 

@@ -33,7 +33,7 @@ public class Resource {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private ResourceStatus status;
+    private ResourceStatus status; //uses resourceStatus
 
     @Column(name = "image_url", columnDefinition = "LONGTEXT")
     private String imageUrl;

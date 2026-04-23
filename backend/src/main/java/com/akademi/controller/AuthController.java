@@ -9,6 +9,8 @@ import com.akademi.service.UserService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import lombok.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -33,7 +35,6 @@ public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider jwtTokenProvider;
 
-    // ── Register (STUDENT or STAFF only — public) ───────────────────────
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<User>> register(
             @Valid @RequestBody RegisterRequest request) {
@@ -43,7 +44,6 @@ public class AuthController {
                     .body(ApiResponse.error("Email already registered"));
         }
 
-        // Public registration: only STUDENT and STAFF allowed
         Role assignedRole = Role.STUDENT;
         if (request.getRole() == Role.STAFF) {
             assignedRole = Role.STAFF;
@@ -62,7 +62,6 @@ public class AuthController {
                 .body(ApiResponse.success("Registered successfully", saved));
     }
 
-    // ── Admin: create a technician account ──────────────────────────────
     @PostMapping("/register/technician")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<User>> createTechnician(
@@ -86,7 +85,6 @@ public class AuthController {
                 .body(ApiResponse.success("Technician account created", saved));
     }
 
-    // ── Login ────────────────────────────────────────────────────────────
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<LoginResponse>> login(
             @Valid @RequestBody LoginRequest request) {
@@ -112,7 +110,6 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success("Login successful", loginResponse));
     }
 
-    // ── Me (used by OAuth2 redirect) ─────────────────────────────────────
     @GetMapping("/me")
     public ResponseEntity<ApiResponse<LoginResponse>> me(
             @AuthenticationPrincipal UserDetails userDetails) {
@@ -133,7 +130,7 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success("ok", response));
     }
 
-    // ── Admin: list all technician accounts (used for assignment dropdown) ──
+
     @GetMapping("/users/technicians")
     public ResponseEntity<ApiResponse<List<UserSummaryDto>>> getTechnicians() {
         List<UserSummaryDto> technicians = userService.getUsersByRole(Role.TECHNICIAN)
@@ -143,20 +140,34 @@ public class AuthController {
         return ResponseEntity.ok(new ApiResponse<>(true, "Technicians", technicians));
     }
 
-    // ── Inner classes ────────────────────────────────────────────────────
 
     @Getter @Setter
     public static class RegisterRequest {
-        @NotBlank private String name;
-        @Email @NotBlank private String email;
-        @NotBlank private String password;
-        private Role role; // STUDENT (default) or STAFF for public register
+        @NotBlank(message = "Name is required")
+        @Size(min = 2, max = 100, message = "Name must be between 2 and 100 characters")
+        @Pattern(regexp = "^[a-zA-Z\\s'`-]+$", message = "Name must contain letters only")
+        private String name;
+
+        @NotBlank(message = "Email is required")
+        @Email(message = "Please enter a valid email address")
+        private String email;
+
+        @NotBlank(message = "Password is required")
+        @Size(min = 8, max = 100, message = "Password must be at least 8 characters")
+        @Pattern(regexp = "^\\S+$", message = "Password must not contain spaces")
+        private String password;
+
+        private Role role;
     }
 
     @Getter @Setter
     public static class LoginRequest {
-        @Email @NotBlank private String email;
-        @NotBlank private String password;
+        @NotBlank(message = "Email is required")
+        @Email(message = "Please enter a valid email address")
+        private String email;
+
+        @NotBlank(message = "Password is required")
+        private String password;
     }
 
     @Getter @Setter @Builder

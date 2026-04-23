@@ -6,35 +6,106 @@ import toast from 'react-hot-toast'
 import { getErrorMessage } from '../../utils/helpers'
 import bgPattern from '../../assets/image2.jpeg'
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+function validateField(field, value, form, tab) {
+  switch (field) {
+    case 'name':
+      if (!value.trim())           return 'Full name is required.'
+      if (value.trim().length < 2) return 'Name must be at least 2 characters.'
+      return ''
+    case 'email':
+      if (!value.trim())           return 'Email is required.'
+      if (!EMAIL_RE.test(value))   return 'Please enter a valid email address.'
+      return ''
+    case 'password':
+      if (!value)                                         return 'Password is required.'
+      if (tab === 'login'    && value.length < 6)         return 'Password must be at least 6 characters.'
+      if (tab === 'register' && value.length < 8)         return 'Password must be at least 8 characters.'
+      return ''
+    case 'confirmPassword':
+      if (!value)                  return 'Please confirm your password.'
+      if (value !== form.password) return 'Passwords do not match.'
+      return ''
+    default:
+      return ''
+  }
+}
+
 export default function LoginPage() {
-  const { login, getHomePath } = useAuth()
+  const { login } = useAuth()
   const navigate = useNavigate()
   const [tab, setTab] = useState('login')
   const [loading, setLoading] = useState(false)
   const [role, setRole] = useState('STUDENT')
-  const [form, setForm] = useState({ name: '', email: '', password: '' })
+  const [form, setForm] = useState({ name: '', email: '', password: '', confirmPassword: '' })
+  const [errors, setErrors] = useState({})
+  const [touched, setTouched] = useState({})
 
-  const update = (k, v) => setForm(p => ({ ...p, [k]: v }))
+  const update = (k, v) => {
+    const newForm = { ...form, [k]: v }
+    setForm(newForm)
+    if (touched[k]) {
+      const error = validateField(k, v, newForm, tab)
+      setErrors(p => ({ ...p, [k]: error }))
+      if (k === 'password' && touched.confirmPassword) {
+        const confirmError = validateField('confirmPassword', newForm.confirmPassword, newForm, tab)
+        setErrors(p => ({ ...p, confirmPassword: confirmError }))
+      }
+    }
+  }
+
+  const handleBlur = (k) => {
+    setTouched(p => ({ ...p, [k]: true }))
+    const error = validateField(k, form[k], form, tab)
+    setErrors(p => ({ ...p, [k]: error }))
+  }
+
+  const switchTab = (t) => {
+    setTab(t)
+    setErrors({})
+    setTouched({})
+    setForm({ name: '', email: '', password: '', confirmPassword: '' })
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    const fields = tab === 'login'
+      ? ['email', 'password']
+      : ['name', 'email', 'password', 'confirmPassword']
+
+    const newErrors = {}
+    const newTouched = {}
+    fields.forEach(f => {
+      newTouched[f] = true
+      const error = validateField(f, form[f], form, tab)
+      if (error) newErrors[f] = error
+    })
+
+    setTouched(newTouched)
+    setErrors(newErrors)
+
+    if (Object.keys(newErrors).length > 0) {
+      toast.error(Object.values(newErrors)[0])
+      return
+    }
+
     setLoading(true)
     try {
       if (tab === 'login') {
         const res = await api.post('/auth/login', { email: form.email, password: form.password })
         const { token, refreshToken, ...userData } = res.data.data
         login(userData, token, refreshToken)
-        const path = getPathForRole(userData.role)
-        navigate(path, { replace: true })
+        navigate(getPathForRole(userData.role), { replace: true })
       } else {
         await api.post('/auth/register', {
-          name: form.name,
-          email: form.email,
+          name: form.name.trim(),
+          email: form.email.trim(),
           password: form.password,
           role: role,
         })
         toast.success('Account created! Please login.')
-        setTab('login')
+        switchTab('login')
       }
     } catch (err) {
       toast.error(getErrorMessage(err))
@@ -50,12 +121,34 @@ export default function LoginPage() {
     return '/'
   }
 
-  const inputStyle = {
-    width: '100%', padding: '10px 14px', borderRadius: 'var(--radius-md)',
-    border: '1px solid var(--gray-200)', fontSize: 14, outline: 'none',
-    background: 'var(--white)', color: 'var(--green-deepest)',
-    transition: 'border-color var(--transition)', fontFamily: 'var(--font-sans)'
+  const blockSpaces = (field) => (e) => {
+    if (e.key === ' ') {
+      e.preventDefault()
+      setTouched(p => ({ ...p, [field]: true }))
+      setErrors(p => ({ ...p, [field]: 'Spaces are not allowed here.' }))
+    }
   }
+
+  const blockInvalidNameChars = (e) => {
+    const allowed = /^[a-zA-Z\s'`-]$/
+    if (e.key.length === 1 && !allowed.test(e.key)) {
+      e.preventDefault()
+      setTouched(p => ({ ...p, name: true }))
+      if (/\d/.test(e.key)) {
+        setErrors(p => ({ ...p, name: 'Numbers are not allowed in names.' }))
+      } else {
+        setErrors(p => ({ ...p, name: 'Special characters are not allowed in names.' }))
+      }
+    }
+  }
+
+  const inputStyle = (field) => ({
+    width: '100%', padding: '10px 14px', borderRadius: 'var(--radius-md)',
+    border: `1px solid ${errors[field] ? '#e53e3e' : 'var(--gray-200)'}`,
+    fontSize: 14, outline: 'none',
+    background: 'var(--white)', color: 'var(--green-deepest)',
+    transition: 'border-color 0.2s', fontFamily: 'var(--font-sans)'
+  })
 
   const roleBtn = (r) => ({
     flex: 1, padding: '10px 8px', borderRadius: 'var(--radius-md)',
@@ -66,6 +159,17 @@ export default function LoginPage() {
     cursor: 'pointer', transition: 'all var(--transition)',
     display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
   })
+
+  const fieldMessage = (field) => {
+    if (errors[field]) {
+      return (
+        <p style={{ fontSize: 11, color: '#e53e3e', marginTop: 4, marginBottom: 0 }}>
+          {errors[field]}
+        </p>
+      )
+    }
+    return null
+  }
 
   return (
     <div style={{
@@ -78,7 +182,6 @@ export default function LoginPage() {
       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
       position: 'relative',
     }}>
-      {/* Dark overlay for contrast */}
       <div style={{
         position: 'absolute', inset: 0,
         background: 'rgba(0,0,0,0.55)',
@@ -86,7 +189,6 @@ export default function LoginPage() {
       }} />
 
       <div style={{ width: '100%', maxWidth: 420, position: 'relative' }}>
-        {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: 40 }}>
           <h1 style={{ fontSize: 32, fontWeight: 600, color: 'var(--white)', letterSpacing: '-1px' }}>
             Akade<span style={{ color: 'var(--green-bright)' }}>mi</span>
@@ -100,13 +202,12 @@ export default function LoginPage() {
           background: 'var(--white)', borderRadius: 'var(--radius-lg)',
           padding: 32, boxShadow: 'var(--shadow-lg)'
         }}>
-          {/* Tabs */}
           <div style={{
             display: 'flex', background: 'var(--gray-100)',
             borderRadius: 'var(--radius-md)', padding: 4, marginBottom: 28
           }}>
             {['login', 'register'].map(t => (
-              <button key={t} onClick={() => setTab(t)} style={{
+              <button key={t} onClick={() => switchTab(t)} style={{
                 flex: 1, padding: '8px', borderRadius: 'var(--radius-sm)',
                 border: 'none', fontSize: 14, fontWeight: 500,
                 background: tab === t ? 'var(--white)' : 'transparent',
@@ -117,7 +218,9 @@ export default function LoginPage() {
             ))}
           </div>
 
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <form onSubmit={handleSubmit} noValidate
+            style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
             {tab === 'register' && (
               <>
                 <div>
@@ -138,23 +241,85 @@ export default function LoginPage() {
                 </div>
 
                 <div>
-                  <label style={{ fontSize: 13, fontWeight: 500, color: 'var(--gray-600)', display: 'block', marginBottom: 6 }}>Full Name</label>
-                  <input style={inputStyle} placeholder="John Doe" value={form.name}
-                    onChange={e => update('name', e.target.value)} required />
+                  <label style={{ fontSize: 13, fontWeight: 500, color: 'var(--gray-600)', display: 'block', marginBottom: 6 }}>
+                    Full Name
+                  </label>
+                  <input
+                    style={inputStyle('name')}
+                    placeholder="John Doe"
+                    value={form.name}
+                    onChange={e => update('name', e.target.value)}
+                    onBlur={() => handleBlur('name')}
+                    onKeyDown={blockInvalidNameChars}
+                    autoComplete="name"
+                  />
+                  {fieldMessage('name')}
+                  {!errors.name && !touched.name && (
+                    <p style={{ fontSize: 11, color: 'var(--gray-400)', marginTop: 4 }}>
+                      Letters only — numbers and special characters are not allowed
+                    </p>
+                  )}
                 </div>
               </>
             )}
 
             <div>
-              <label style={{ fontSize: 13, fontWeight: 500, color: 'var(--gray-600)', display: 'block', marginBottom: 6 }}>Email</label>
-              <input style={inputStyle} type="email" placeholder="you@university.edu" value={form.email}
-                onChange={e => update('email', e.target.value)} required />
+              <label style={{ fontSize: 13, fontWeight: 500, color: 'var(--gray-600)', display: 'block', marginBottom: 6 }}>
+                Email
+              </label>
+              <input
+                style={inputStyle('email')}
+                type="text"
+                placeholder="you@university.edu"
+                value={form.email}
+                onChange={e => update('email', e.target.value)}
+                onBlur={() => handleBlur('email')}
+                onKeyDown={blockSpaces('email')}
+                autoComplete="email"
+              />
+              {fieldMessage('email')}
             </div>
+
             <div>
-              <label style={{ fontSize: 13, fontWeight: 500, color: 'var(--gray-600)', display: 'block', marginBottom: 6 }}>Password</label>
-              <input style={inputStyle} type="password" placeholder="••••••••" value={form.password}
-                onChange={e => update('password', e.target.value)} required />
+              <label style={{ fontSize: 13, fontWeight: 500, color: 'var(--gray-600)', display: 'block', marginBottom: 6 }}>
+                Password
+              </label>
+              <input
+                style={inputStyle('password')}
+                type="password"
+                placeholder="••••••••"
+                value={form.password}
+                onChange={e => update('password', e.target.value)}
+                onBlur={() => handleBlur('password')}
+                onKeyDown={blockSpaces('password')}
+                autoComplete={tab === 'login' ? 'current-password' : 'new-password'}
+              />
+              {fieldMessage('password')}
+              {tab === 'register' && !touched.password && (
+                <p style={{ fontSize: 11, color: 'var(--gray-400)', marginTop: 4 }}>
+                  Minimum 8 characters, no spaces
+                </p>
+              )}
             </div>
+
+            {tab === 'register' && (
+              <div>
+                <label style={{ fontSize: 13, fontWeight: 500, color: 'var(--gray-600)', display: 'block', marginBottom: 6 }}>
+                  Confirm Password
+                </label>
+                <input
+                  style={inputStyle('confirmPassword')}
+                  type="password"
+                  placeholder="••••••••"
+                  value={form.confirmPassword}
+                  onChange={e => update('confirmPassword', e.target.value)}
+                  onBlur={() => handleBlur('confirmPassword')}
+                  onKeyDown={blockSpaces('confirmPassword')}
+                  autoComplete="new-password"
+                />
+                {fieldMessage('confirmPassword')}
+              </div>
+            )}
 
             <button type="submit" disabled={loading} style={{
               width: '100%', padding: '11px', borderRadius: 'var(--radius-md)',
@@ -166,7 +331,6 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* Google OAuth */}
           <div style={{ marginTop: 20, textAlign: 'center' }}>
             <p style={{ fontSize: 12, color: 'var(--gray-400)', marginBottom: 12 }}>or continue with</p>
             <a href="http://localhost:8081/oauth2/authorize/google" style={{

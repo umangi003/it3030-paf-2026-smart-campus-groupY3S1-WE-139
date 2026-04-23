@@ -591,7 +591,7 @@ export default function IncidentListPage() {
                 placeholder="e.g. 0771234567"
                 value={form.contactPhone}
                 maxLength={10}
-                onChange={e => handleFieldChange('contactPhone', e.target.value)}
+                onChange={e => handleFieldChange('contactPhone', e.target.value.replace(/\D/g, ''))}
               />
               {formErrors.contactPhone
                 ? errorText(formErrors.contactPhone)

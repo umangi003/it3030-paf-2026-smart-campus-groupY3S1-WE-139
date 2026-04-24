@@ -10,6 +10,7 @@ backend/target/
 **/target/
 *.class
 *.jar
+
 *.war
 *.ear
 
@@ -39,3 +40,5 @@ Thumbs.db
 *.tmp
 *.swp
 *~
+
+.history/

@@ -1,0 +1,74 @@
+package com.akademi.service;
+
+import com.akademi.enums.BookingStatus;
+import com.akademi.enums.NotificationCategory;
+import com.akademi.enums.ResourceStatus;
+import com.akademi.model.Booking;
+import com.akademi.model.Resource;
+import com.akademi.repository.BookingRepository;
+import com.akademi.repository.ResourceRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional; 
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class BookingSchedulerService {
+
+    private final BookingRepository bookingRepository;
+    private final ResourceRepository resourceRepository;
+    private final NotificationService notificationService;
+
+    //expired bookings
+    @Scheduled(fixedRate = 60000)
+    @Transactional
+    public void completeExpiredBookings() {
+        log.info("Checking for expired bookings...");
+        List<Booking> expired = bookingRepository.findExpiredApprovedBookings(LocalDateTime.now());
+
+        for (Booking booking : expired) {
+            booking.setStatus(BookingStatus.COMPLETED);
+            bookingRepository.save(booking);
+
+            Resource resource = booking.getResource();
+            resource.setStatus(ResourceStatus.AVAILABLE);
+            resourceRepository.save(resource);
+
+            notificationService.sendNotification(
+                    booking.getUser(),
+                    "Booking Completed",
+                    "Your booking for " + resource.getName() + " has ended and been marked as completed.",
+                    NotificationCategory.GENERAL,
+                    booking.getId(),
+                    "BOOKING"
+            );
+
+            log.info("Booking #{} marked as COMPLETED, resource '{}' set to AVAILABLE",
+                    booking.getId(), resource.getName());
+        }
+    }
+
+    // Runs every minute to mark resources UNAVAILABLE when their booking time starts
+    @Scheduled(fixedRate = 60000)
+    @Transactional
+    public void lockResourcesForActiveBookings() {
+        log.info("Checking for bookings that have started...");
+        LocalDateTime now = LocalDateTime.now();
+        List<Booking> active = bookingRepository.findActiveApprovedBookings(now);
+
+        for (Booking booking : active) {
+            Resource resource = booking.getResource();
+            if (resource.getStatus() != ResourceStatus.UNAVAILABLE) {
+                resource.setStatus(ResourceStatus.UNAVAILABLE);
+                resourceRepository.save(resource);
+                log.info("Resource '{}' set to UNAVAILABLE (booking #{} in progress)",
+                        resource.getName(), booking.getId());
+            }
+        }
+    }}
